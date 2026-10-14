@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {initialState,migrateState,logSet,exerciseById,fatigue,togglePin,copy} from '../app.js';
 const at=new Date('2026-10-14T12:00:00');
 test('old JM and combined wrist histories migrate independently and idempotently',()=>{
- const s=initialState();s.exercises=s.exercises.filter(e=>!['e29','e30'].includes(e.id));
+ const s=initialState();delete s.revision;delete s.groups;delete s.hiddenGroups;s.exercises=s.exercises.filter(e=>!['e29','e30'].includes(e.id));
  s.folders[0].exerciseIds=s.folders[0].exerciseIds.filter(id=>id!=='e30');
  exerciseById(s,'e16').name='JM Press';exerciseById(s,'e15').name='Cable Wrist Curls & Reverse';
  for(const eid of ['e15','e16'])for(let i=0;i<3;i++)logSet(s,eid,i,{weight:50,reps:10},at,`${eid}-${i}`);

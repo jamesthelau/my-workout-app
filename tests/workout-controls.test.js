@@ -9,12 +9,12 @@ const finish=(s,eid)=>{for(let i=0;i<exerciseById(s,eid).sets;i++)log(s,eid,i);}
 
 test('merged accordions and Bulgarian split squat preserve original exercise IDs',()=>{
   const s=initialState();
-  assert.equal(GROUPS.length,14);
+  assert.equal(GROUPS.length,12);
   for(const eid of ['e1','e2','e3'])assert.equal(exerciseById(s,eid).group,'chest');
   for(const eid of ['e26','e27'])assert.equal(exerciseById(s,eid).group,'core');
-  for(const eid of ['e23','e24','e25'])assert.equal(exerciseById(s,eid).group,'misc-legs');
-  const split=exerciseById(s,'e28');assert.equal(split.group,'glutes');assert.equal(split.name,'Bulgarian Split Squat');
-  assert.equal(split.sets,3);assert.equal(split.targetCooldown,7);assert.equal(split.tier,1);
+  assert.equal(exerciseById(s,'e23').group,'posterior-chain');for(const eid of ['e24','e25'])assert.equal(exerciseById(s,eid).group,'calves-adductors');
+  const split=exerciseById(s,'e28');assert.equal(split.group,'quads');assert.equal(split.name,'Bulgarian Split Squat');
+  assert.equal(split.sets,3);assert.equal(split.targetCooldown,7);assert.equal(split.tier,2);
 });
 test('daily fatigue reset zeros score without changing history, pips or readiness',()=>{
   const s=initialState();finish(s,'e1');finish(s,'e3');log(s,'e2',0);
@@ -47,13 +47,13 @@ test('new workout starts from zero after ending, by button or first new set',()=
   assert.equal(s.history.length,2);
 });
 test('2.1 migration regroups existing records and alternates without losing linked data',()=>{
-  const old=initialState();old.exercises=old.exercises.filter(e=>e.id!=='e28');delete old.fatigueResets;delete old.clock.ended;
+  const old=initialState();delete old.revision;delete old.groups;delete old.hiddenGroups;old.exercises=old.exercises.filter(e=>e.id!=='e28');delete old.fatigueResets;delete old.clock.ended;
   const oldGroups={e1:'upper-chest',e2:'upper-chest',e3:'mid-chest',e23:'glutes',e24:'adductors',e25:'calves',e26:'core-flexion',e27:'core-stability'};
   for(const [eid,group] of Object.entries(oldGroups))exerciseById(old,eid).group=group;
   addAlternate(old,'e23','Machine Hip Thrust',{},'thrust-alternate');
   exerciseById(old,'e23').seat='Chair 4';log(old,'e23');old.folders[0].exerciseIds.push('thrust-alternate');
   const before=copy(old),next=migrateState(old);
-  assert.equal(next.exercises.length,31);assert.equal(exerciseById(next,'thrust-alternate').group,'misc-legs');
+  assert.equal(next.exercises.length,32);assert.equal(exerciseById(next,'thrust-alternate').group,'posterior-chain');
   assert.equal(exerciseById(next,'e23').seat,'Chair 4');assert.deepEqual(next.history,before.history);
   assert.deepEqual(next.folders,before.folders);assert.deepEqual(next.timers,before.timers);
   assert.deepEqual(next.fatigueResets,{});assert.equal(next.clock.ended,false);

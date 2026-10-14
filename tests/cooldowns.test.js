@@ -31,7 +31,7 @@ test('never-trained and reset exercises are Ready without changing today’s poi
   assert.equal(fatigue(s,'2026-10-12').score,3);assert.deepEqual(s.history,records);
 });
 test('old V2 migration adds seed and inherited alternate cooldowns without changing any existing data',()=>{
-  const old=initialState();addAlternate(old,'e22','Lying Leg Curl',{},'lying');
+  const old=initialState();delete old.revision;delete old.groups;delete old.hiddenGroups;addAlternate(old,'e22','Lying Leg Curl',{},'lying');
   old.exercises[0].seat='Chair 2';old.pinned=['e1'];
   logSet(old,'e1',0,{weight:100,reps:8,partial:true},at,'historical');
   old.drafts['2026-10-12|e2|0']={weight:'30',reps:'10',partial:false};
@@ -39,7 +39,7 @@ test('old V2 migration adds seed and inherited alternate cooldowns without chang
   const original=copy(old),next=migrateState(old);
   assert.equal(next.exercises.find(e=>e.id==='lying').targetCooldown,7);
   assert.deepEqual(next.exercises.slice(0,27).map(e=>e.targetCooldown),SEED.slice(0,27).map(e=>e.targetCooldown));
-  const withoutNewFields=copy(next);for(const e of withoutNewFields.exercises)delete e.targetCooldown;
+  const withoutNewFields=copy(next);delete withoutNewFields.revision;delete withoutNewFields.groups;delete withoutNewFields.hiddenGroups;for(const e of withoutNewFields.exercises)delete e.targetCooldown;
   assert.deepEqual(withoutNewFields,original);assert.deepEqual(old,original);
   assert.deepEqual(migrateState(next),next);validateState(next);
 });
