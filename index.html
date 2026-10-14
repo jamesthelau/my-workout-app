@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#000000">
+  <meta name="description" content="An intent-driven, offline workout log. Train by muscle or station, pin your supersets, and keep your history on your device.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" type="image/png" href="./icons/icon-192.png">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <link rel="stylesheet" href="./styles.css">
+  <title>Flex Log 02 — Your floor. Your flow.</title>
+</head>
+<body>
+  <div id="warning" role="alert" hidden></div>
+  <div class="app-shell">
+    <header class="sticky-top" id="top" aria-label="Daily fatigue and active superset"></header>
+    <main>
+      <div class="brand-row"><a class="brand" href="./" aria-label="Flex Log home">FLEX<span>/</span>LOG <b>02</b></a><button class="icon-button settings-button" data-action="settings" aria-label="Settings"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3" fill="#000"/><circle cx="15" cy="17" r="3" fill="#000"/></svg></button></div>
+      <h1 id="page-title">Your floor. Your flow.</h1>
+      <p class="page-subtitle" id="page-subtitle">Choose a muscle. Make the next set count.</p>
+      <div class="page-tabs" aria-label="Exercise organization"><button data-action="page" data-page="muscles" class="selected">Muscles</button><button data-action="page" data-page="stations">Stations</button></div>
+      <label class="search-wrap"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></svg><input type="search" id="search" placeholder="Find an exercise or muscle…" aria-label="Search exercises and muscles" autocomplete="off"></label>
+      <div class="filters" id="filters" aria-label="Muscle area filter"></div>
+      <section id="content" aria-label="Exercises"></section>
+      <footer class="app-footer"><span><i></i> ON THIS DEVICE. ALWAYS YOURS.</span><span>LESS FRICTION. MORE GOOD REPS.</span></footer>
+    </main>
+  </div>
+  <dialog id="dialog" aria-labelledby="dialog-title"><div id="dialog-content"></div></dialog>
+  <aside id="timer-dock" class="timer-dock" aria-label="Independent rest timers" hidden></aside>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <div id="announce" class="sr-only" aria-live="polite"></div>
+  <noscript><p class="empty">Enable JavaScript to use Flex Log and save your workouts.</p></noscript>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

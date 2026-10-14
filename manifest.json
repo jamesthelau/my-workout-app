@@ -1,0 +1,17 @@
+{
+  "id": "./",
+  "name": "Flex Log 02 — Intent-driven Hypertrophy",
+  "short_name": "Flex Log",
+  "description": "An offline, local-first workout log organized by muscle and gym station.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "lang": "en",
+  "icons": [
+    {"src":"./icons/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any"},
+    {"src":"./icons/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any"},
+    {"src":"./icons/maskable-512.png","sizes":"512x512","type":"image/png","purpose":"maskable"}
+  ]
+}
