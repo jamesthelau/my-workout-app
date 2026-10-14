@@ -14,7 +14,7 @@ test('merged accordions and Bulgarian split squat preserve original exercise IDs
   for(const eid of ['e26','e27'])assert.equal(exerciseById(s,eid).group,'core');
   for(const eid of ['e23','e24','e25'])assert.equal(exerciseById(s,eid).group,'misc-legs');
   const split=exerciseById(s,'e28');assert.equal(split.group,'glutes');assert.equal(split.name,'Bulgarian Split Squat');
-  assert.equal(split.sets,3);assert.equal(split.targetCooldown,3);assert.equal(split.tier,1);
+  assert.equal(split.sets,3);assert.equal(split.targetCooldown,7);assert.equal(split.tier,1);
 });
 test('daily fatigue reset zeros score without changing history, pips or readiness',()=>{
   const s=initialState();finish(s,'e1');finish(s,'e3');log(s,'e2',0);
@@ -53,7 +53,7 @@ test('2.1 migration regroups existing records and alternates without losing link
   addAlternate(old,'e23','Machine Hip Thrust',{},'thrust-alternate');
   exerciseById(old,'e23').seat='Chair 4';log(old,'e23');old.folders[0].exerciseIds.push('thrust-alternate');
   const before=copy(old),next=migrateState(old);
-  assert.equal(next.exercises.length,29);assert.equal(exerciseById(next,'thrust-alternate').group,'misc-legs');
+  assert.equal(next.exercises.length,31);assert.equal(exerciseById(next,'thrust-alternate').group,'misc-legs');
   assert.equal(exerciseById(next,'e23').seat,'Chair 4');assert.deepEqual(next.history,before.history);
   assert.deepEqual(next.folders,before.folders);assert.deepEqual(next.timers,before.timers);
   assert.deepEqual(next.fatigueResets,{});assert.equal(next.clock.ended,false);

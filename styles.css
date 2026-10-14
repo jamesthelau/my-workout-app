@@ -23,3 +23,5 @@
 .pin-card.recovering .pin-readiness{color:#a0a69b}
 dialog .timer-dock,dialog .toast{left:50%}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+
+.pin-shell{position:relative;min-width:0}.pin-shell .pin-card{width:100%;height:100%;padding-top:35px}.unpin-button{position:absolute;right:0;top:0;width:44px;height:44px;min-height:44px;padding:0;border:0;background:transparent;color:#c5d2bc;font-size:24px;z-index:1}.unpin-button:focus-visible{outline:2px solid var(--lime);outline-offset:-4px}

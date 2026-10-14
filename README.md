@@ -193,3 +193,8 @@ Before relying on it at the gym, check these on the deployed phone app:
 6. Export, alter a setting, restore and confirm the backup state returns. Try a malformed file and confirm no replacement.
 7. Wait for offline readiness, install, disconnect networking, reopen and log. Reopen again to confirm persistence.
 8. Check timer tone/vibration and the wake-lock indicator on the actual device; test returning after a background interval.
+
+## Update 2.3
+30 seeded exercises. Bulgarian split squats and hip thrusts both have 7-day cooldowns. Added reverse curls (3 sets of 10–15, 1 fatigue point, 90–120 seconds rest, 3-day cooldown). Separate cable wrist curls and cable wrist extensions (each 3 sets of 12–15, 1 point, 60–90 seconds rest, 3-day cooldown). Dips replace JM press with the same prescription. Exercise names standardized. Each Active card has an individual × to unpin without deleting logs or stopping its timer.
+
+Old JM press and combined wrist performances remain under labeled Legacy alternates when history exists; they are not copied into the new movements. Other exercise histories and seat positions are preserved. Export a backup before replacing files at the same deployment URL. Close all app tabs/windows and reopen to activate the new offline cache.

@@ -11,35 +11,37 @@ const legacyGroups = {'upper-chest':'chest','mid-chest':'chest',adductors:'misc-
 const seedRows = [
   ['Incline Smith Machine Press','chest',1,3,'5–8',180,240],
   ['Incline Cable Fly','chest',2,3,'8–12',120,180],
-  ['Normal Machine Fly (Pec Deck)','chest',3,2,'12–15',120,120],
+  ['Pec Deck','chest',3,2,'12–15',120,120],
   ['Chest-Supported T-Bar Row','mid-back',1,3,'6–10',180,180],
-  ['Single-Arm DB Row (to hip)','lats',2,3,'8–10',120,180],
+  ['Single-Arm Dumbbell Row','lats',2,3,'8–10',120,180],
   ['Half-Kneeling Single-Arm Pulldown','lats',2,3,'8–12',120,120],
   ['Neutral Grip Lat Pulldown','lats',2,3,'8–12',120,120],
   ['Seated DB Shoulder Press','front-delts',1,3,'6–10',180,180],
-  ['Behind-the-back Cable Lateral','side-delts',2,3,'10–12',120,120],
+  ['Behind-the-Back Cable Lateral Raise','side-delts',2,3,'10–12',120,120],
   ['DB Lateral Raises','side-delts',3,3,'12–15',90,120],
   ['Reverse Pec Deck','rear-delts',3,3,'12–15',90,120],
   ['Incline DB Curl','biceps',2,3,'8–10',120,120],
   ['Preacher Curl','biceps',2,3,'10–12',120,120],
   ['DB Hammer Curl','biceps',3,3,'10–15',90,120],
-  ['Cable Wrist Curls & Reverse','forearms',3,3,'12–15',60,90],
-  ['JM Press','triceps',1,3,'6–10',180,180],
-  ['Cross-body Cable Overhead Ext.','triceps',2,3,'10–12',120,120],
-  ['Cross-body Cable Pushdown','triceps',3,3,'10–15',90,120],
+  ['Cable Wrist Curl','forearms',3,3,'12–15',60,90],
+  ['Dips','triceps',1,3,'6–10',180,180],
+  ['Cross-Body Overhead Cable Triceps Extension','triceps',2,3,'10–12',120,120],
+  ['Cross-Body Cable Triceps Pushdown','triceps',3,3,'10–15',90,120],
   ['Hack Squat','quads',1,3,'6–10',180,300],
   ['Seated Leg Extensions','quads',2,3,'10–15',120,120],
-  ['RDL (Barbell or DB)','hamstrings',1,3,'6–8',180,300],
-  ['Seated Machine Leg Curl','hamstrings',2,3,'8–12',120,120],
+  ['Romanian Deadlift','hamstrings',1,3,'6–8',180,300],
+  ['Seated Leg Curl','hamstrings',2,3,'8–12',120,120],
   ['Barbell Hip Thrust','misc-legs',2,3,'8–12',120,180],
   ['Seated Adductor Machine','misc-legs',2,3,'10–15',120,120],
   ['Standing Machine Calf Raise','misc-legs',3,3,'8–12',90,120],
   ['Weighted Cable Crunches','core',3,3,'10–15',90,90],
   ['Pallof Press','core',3,3,'10–15',90,90],
-  ['Bulgarian Split Squat','glutes',1,3,'8–12',120,180]
+  ['Bulgarian Split Squat','glutes',1,3,'8–12',120,180],
+  ['Reverse Curl','forearms',3,3,'10–15',90,120],
+  ['Cable Wrist Extension','forearms',3,3,'12–15',60,90]
 ];
-const targetCooldowns = [3,7,7,7,7,7,7,7,3,3,3,7,7,3,3,7,7,3,3,3,7,7,7,7,3,3,7,3];
-const rotationPartners = {e2:'e3',e3:'e2',e21:'e22',e22:'e21'};
+const targetCooldowns = [3,7,7,7,7,7,7,7,3,3,3,7,7,3,3,7,7,3,3,3,7,7,7,7,3,3,7,7,3,3];
+const rotationPartners = {e2:'e3',e3:'e2',e21:'e22',e22:'e21',e23:'e28',e28:'e23'};
 export const SEED = seedRows.map(([name,group,tier,sets,reps,min,max],i)=>({id:`e${i+1}`,name,group,tier,sets,reps,rest:[min,max],targetCooldown:targetCooldowns[i],parent:null,seat:''}));
 export const copy = value => structuredClone(value);
 export const id = () => crypto.randomUUID();
@@ -55,7 +57,7 @@ export function ordinal(day) {
 export const daysBetween = (earlier,later) => Math.max(0,ordinal(later)-ordinal(earlier));
 export function initialState() {
   return {version:2,exercises:copy(SEED),history:[],drafts:{},plans:{},epoch:0,fatigueResets:{},
-    folders:[{id:'cables',name:'Cable Station',exerciseIds:['e2','e6','e9','e15','e17','e18','e26','e27']}],
+    folders:[{id:'cables',name:'Cable Station',exerciseIds:['e2','e6','e9','e15','e30','e17','e18','e26','e27']}],
     pinned:[],timers:{},clock:{startedAt:null,elapsed:0,ended:false},
     settings:{unit:'lbs',sound:true,haptics:true},rest:{}};
 }
@@ -85,10 +87,29 @@ export function readinessStatus(s,exerciseId,day=localDay()) {
 export function migrateState(input) {
   // Validate legacy data first; preserve exercise IDs and every historical record.
   const s=copy(validateState(input,{allowMissingCooldown:true,legacy:true}));
+  // Preserve old performances without attributing them to a different movement.
+  for(const [eid,oldName] of [['e16','JM Press'],['e15','Cable Wrist Curls & Reverse']]){
+    const old=exerciseById(s,eid);
+    if(old?.name!==oldName)continue;
+    const legacyId=`legacy-${eid}`;
+    if(s.history.some(r=>r.exerciseId===eid)){
+      s.exercises.push({...copy(old),id:legacyId,name:`${oldName} (Legacy)`,parent:eid});
+      for(const r of s.history)if(r.exerciseId===eid)r.exerciseId=legacyId;
+      for(const field of ['plans','drafts'])for(const key of Object.keys(s[field])){
+        const parts=key.split('|');if(parts[1]!==eid)continue;
+        parts[1]=legacyId;s[field][parts.join('|')]=s[field][key];delete s[field][key];
+      }
+      for(const field of ['timers','rest'])if(s[field][eid]){s[field][legacyId]=s[field][eid];delete s[field][eid];}
+      for(const ids of Object.values(s.fatigueResets||{}))for(let i=0;i<ids.length;i++)if(ids[i]===eid)ids[i]=legacyId;
+    } else {
+      for(const field of ['plans','drafts'])for(const key of Object.keys(s[field]))if(key.split('|')[1]===eid)delete s[field][key];
+    }
+    old.seat='';
+  }
   for(const exercise of s.exercises)exercise.group=legacyGroups[exercise.group]||exercise.group;
   for(const seed of SEED){
     const existing=exerciseById(s,seed.id);
-    if(existing){existing.targetCooldown=seed.targetCooldown;existing.group=seed.group;}
+    if(existing){existing.targetCooldown=seed.targetCooldown;existing.group=seed.group;existing.name=seed.name;}
     else s.exercises.push(copy(seed));
   }
   for(const exercise of s.exercises){
@@ -285,7 +306,7 @@ function boot() {
   function renderTop(){
     const f=fatigue(state,today);
     $('#top').innerHTML=`<div class="load-row"><div class="load-label"><span class="eyebrow">DAILY FATIGUE</span><div><strong>${f.score}</strong><span>points <i>·</i> <b>${f.count}</b> ${state.fatigueResets[today]?'exercises counted':'exercises done'}</span></div></div><button class="clock-button" data-action="workout" aria-label="Workout stopwatch"><span class="clock-icon" aria-hidden="true">◷</span><span id="stopwatch">00:00</span><small>${state.clock.ended?'ENDED':state.clock.startedAt!==null?'WORKOUT':state.clock.elapsed?'PAUSED':'START'}</small></button></div><div class="daily-line"><span>${state.fatigueResets[today]?'Since fatigue reset':'Today’s benchmark'} <b>6–7 exercises</b></span><span>${(state.clock.startedAt!==null||state.clock.elapsed>0)&&!state.clock.ended?'<button class="end-workout-button" data-action="end-workout">■ End workout</button>':dateLabel(today)}</span></div>
-      <div class="active-tray ${state.pinned.length?'has-pins':''}"><div class="tray-label"><span class="eyebrow">ACTIVE <b>${state.pinned.length}/3</b></span>${state.pinned.length?'<button data-action="clear-pins" class="text-button">Clear</button>':'<span>Pin your superset. Stay in your zone.</span>'}</div>${state.pinned.length?`<div class="pin-grid">${state.pinned.map((eid,i)=>{const e=exerciseById(state,eid),status=readinessStatus(state,eid,today);return `<button class="pin-card ${status.ready?'ready':'recovering'}" data-action="open" data-id="${eid}"><span class="pin-index">${String.fromCharCode(65+i)}</span><strong>${html(e.name)}</strong><span class="pin-readiness">${status.ready?'Ready':`${status.remaining}d remaining`}</span><span class="pin-bottom">${pips(eid)}<small data-countdown="${eid}">${state.timers[eid]?'':'↗'}</small></span></button>`;}).join('')}</div>`:''}</div>`;
+      <div class="active-tray ${state.pinned.length?'has-pins':''}"><div class="tray-label"><span class="eyebrow">ACTIVE <b>${state.pinned.length}/3</b></span>${state.pinned.length?'<button data-action="clear-pins" class="text-button">Clear</button>':'<span>Pin your superset. Stay in your zone.</span>'}</div>${state.pinned.length?`<div class="pin-grid">${state.pinned.map((eid,i)=>{const e=exerciseById(state,eid),status=readinessStatus(state,eid,today);return `<div class="pin-shell"><button class="pin-card ${status.ready?'ready':'recovering'}" data-action="open" data-id="${eid}"><span class="pin-index">${String.fromCharCode(65+i)}</span><strong>${html(e.name)}</strong><span class="pin-readiness">${status.ready?'Ready':`${status.remaining}d remaining`}</span><span class="pin-bottom">${pips(eid)}<small data-countdown="${eid}">${state.timers[eid]?'':'↗'}</small></span></button><button class="unpin-button" data-action="pin" data-id="${eid}" aria-label="Unpin ${html(e.name)}">×</button></div>`;}).join('')}</div>`:''}</div>`;
     tickLabels();
   }
   function exerciseRow(e){const c=completion(state,e.id,today),r=readiness(state,e.id,today),pinned=state.pinned.includes(e.id),status=readinessStatus(state,e.id,today);return `<details class="exercise ${status.ready?'ready':'recovering'} ${c.complete?'complete':c.done?'in-progress':''} ${e.parent?'alternate':''}" data-exercise="${e.id}" ${ui.exercise===e.id?'open':''}><summary><div class="exercise-summary"><span class="exercise-name">${html(e.name)}</span>${readinessBadge(e.id)}<span class="exercise-meta">${e.parent?'Alternate · ':''}${since(r)} <i>·</i> T${e.tier} / ${points(e)} pts</span></div>${pips(e.id)}<button class="pin-button ${pinned?'pinned':''}" data-action="pin" data-id="${e.id}" aria-label="${pinned?'Unpin':'Pin'} ${html(e.name)}" aria-pressed="${pinned}">${pinned?'◆':'◇'}</button><span class="chevron" aria-hidden="true">⌄</span></summary>${ui.exercise===e.id?logger(e):''}</details>`;}

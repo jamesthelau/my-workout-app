@@ -9,14 +9,14 @@ const record=(s,eid='e1',index=0,at=monday,overrides={})=>logSet(s,eid,index,{we
 const finish=(s,eid='e1',at=monday)=>{for(let i=0;i<targetSets(s,eid,localDay(at));i++)record(s,eid,i,at);};
 
 test('exact seed matrix: 27 names, prescriptions and independent muscle groups',()=>{
-  assert.equal(SEED.length,28);assert.equal(SEED.reduce((n,e)=>n+e.sets,0),83);
+  assert.equal(SEED.length,30);assert.equal(SEED.reduce((n,e)=>n+e.sets,0),89);
   assert.deepEqual(SEED.slice(0,27).map(e=>e.tier),[1,2,3,1,2,2,2,1,2,3,3,2,2,3,3,1,2,3,1,2,1,2,2,2,3,3,3]);
   assert.deepEqual(SEED.slice(0,27).map(e=>e.name),[
-    'Incline Smith Machine Press','Incline Cable Fly','Normal Machine Fly (Pec Deck)','Chest-Supported T-Bar Row',
-    'Single-Arm DB Row (to hip)','Half-Kneeling Single-Arm Pulldown','Neutral Grip Lat Pulldown','Seated DB Shoulder Press',
-    'Behind-the-back Cable Lateral','DB Lateral Raises','Reverse Pec Deck','Incline DB Curl','Preacher Curl','DB Hammer Curl',
-    'Cable Wrist Curls & Reverse','JM Press','Cross-body Cable Overhead Ext.','Cross-body Cable Pushdown','Hack Squat',
-    'Seated Leg Extensions','RDL (Barbell or DB)','Seated Machine Leg Curl','Barbell Hip Thrust','Seated Adductor Machine',
+    'Incline Smith Machine Press','Incline Cable Fly','Pec Deck','Chest-Supported T-Bar Row',
+    'Single-Arm Dumbbell Row','Half-Kneeling Single-Arm Pulldown','Neutral Grip Lat Pulldown','Seated DB Shoulder Press',
+    'Behind-the-Back Cable Lateral Raise','DB Lateral Raises','Reverse Pec Deck','Incline DB Curl','Preacher Curl','DB Hammer Curl',
+    'Cable Wrist Curl','Dips','Cross-Body Overhead Cable Triceps Extension','Cross-Body Cable Triceps Pushdown','Hack Squat',
+    'Seated Leg Extensions','Romanian Deadlift','Seated Leg Curl','Barbell Hip Thrust','Seated Adductor Machine',
     'Standing Machine Calf Raise','Weighted Cable Crunches','Pallof Press']);
   assert.deepEqual(SEED[0].rest,[180,240]);assert.deepEqual(SEED[18].rest,[180,300]);
   assert.deepEqual(SEED[14].rest,[60,90]);assert.equal(SEED[2].sets,2);
