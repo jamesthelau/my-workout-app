@@ -1,4 +1,4 @@
-# Flex Log 02 — cooldown update (2.1.0)
+# Flex Log 02 — grouping and workout controls (2.2.0)
 
 An offline-first, intent-driven hypertrophy log. Plain HTML, CSS and JavaScript. No accounts, backend, analytics, CDN, external fonts or build step.
 
@@ -10,11 +10,11 @@ The five requested source files are complete and ready to deploy:
 | --- | --- |
 | `index.html` | Accessible application shell, PWA metadata and dialogs |
 | `styles.css` | OLED black theme, mobile accordion, pinned tray and timer dock |
-| `app.js` | Exact 27-exercise seed, pure model functions, persistent state, all UI and graphs |
+| `app.js` | 28-exercise seed, pure model functions, persistent state, all UI and graphs |
 | `sw.js` | Offline app-shell cache and version lifecycle |
 | `manifest.json` | Standalone installation configuration |
 
-Also included: three required PNG app icons in `icons/`, `.nojekyll` for static hosting, `package.json` with no dependencies, and three optional test files in `tests/`.
+Also included: three required PNG app icons in `icons/`, `.nojekyll` for static hosting, `package.json` with no dependencies, and four optional test files in `tests/`.
 
 `app.js` is organized into an exported, DOM-independent model followed by a browser-only `boot()` scope. The model can be tested without running the interface. Folders, pinning and muscle entries reference the same canonical exercise ID; they never own copied exercise data.
 
@@ -38,13 +38,21 @@ For GitHub Pages:
 
 All URLs are relative and work under a repository path. The manifest uses `"display": "standalone"`. No npm installation, environment variables or API keys are required. This source package has not been published to your GitHub account.
 
-For changes, increment `2.1.0` in `sw.js`, redeploy, visit online and then close all app windows before reopening. The new worker deliberately waits instead of forcing a reload during a workout.
+For changes, increment `2.2.0` in `sw.js`, redeploy, visit online and then close all app windows before reopening. The new worker deliberately waits instead of forcing a reload during a workout.
 
 ## Main interaction
 
 ### Muscles and stations
 
-The master screen has 17 granular regions, with Upper body / Lower body / Core filters and exercise search. One muscle and one exercise are expanded at a time during normal browsing. Search opens relevant regions.
+The latest update revises the existing app:
+
+- **Chest** combines Upper Chest and Mid / Lower Chest.
+- **Core** combines Flexion and Stability.
+- **Misc Legs** contains Barbell Hip Thrust, the existing Seated Adductor Machine and Standing Machine Calf Raise.
+- **Glutes** contains the new Bulgarian Split Squat. Initial defaults: Tier 1 / 3 points, 3 × 8–12 reps, 2–3 minutes rest, 3-day cooldown. Complete both sides before checking; keep a consistent dumbbell-per-hand or barbell load convention. These new defaults were chosen because no prescription was provided.
+
+
+The master screen has 14 muscle / movement groups, with Upper body / Lower body / Core filters and exercise search. One muscle and one exercise are expanded at a time during normal browsing. Search opens relevant regions.
 
 Each collapsed exercise row shows **Ready** or **Recovering: X days remaining**, its own **Last: N days ago**, set pips and a pin button. Ready exercise names are bright; recovering names are muted without disabling logging. Pinned cards show the same readiness state. Expanded exercises display exact dates and previous-session weight/reps. A collapsed muscle's **Latest** is only a summary of its most recent exercise; it does not assign one cooldown to the group.
 
@@ -58,7 +66,7 @@ Every checked set starts or replaces **only that exercise's** rest timer. Other 
 
 Rest defaults to the midpoint of the prescribed range. Examples: 3–4m → 3:30; 90s–2m → 1:45; 60s–90s → 1:15. Tap the exercise's rest setting to choose 15–900 seconds for future sets. Timers use saved absolute deadlines, so navigation, reloads and suspended intervals do not extend rest.
 
-The stopwatch starts on the first logged set or manually from the header. Pause, resume or reset it in its own small dialog. Resetting the stopwatch does not affect history, points or independent rest timers. A workout can continue across midnight while daily set accounting rolls over.
+The stopwatch starts on the first logged set or manually from the header. Pause or resume it in its own small dialog. **End workout** is available beside the daily benchmark while a workout is active, and in the workout-clock dialog. Ending preserves the final elapsed duration, stops all rest timers and clears pins. It keeps history, checkmarks, cooldowns and daily fatigue. Use **Start new workout** or log a new set to begin a new clock from zero. Both End workout and the independent resets have a three-second Undo. A workout can continue across midnight while daily set accounting rolls over.
 
 ### Fast logging
 
@@ -70,7 +78,7 @@ The stopwatch starts on the first logged set or manually from the header. Pause,
 - **Pin/Seat Pos** is saved as you type and restored as the editable value when the exercise is reopened. Each alternate has its own seat memory.
 - **Load tools** holds −5 / +5 / +10 buttons and a symmetrical plate calculator, keeping them off the normal set rows. Plate taps add the selected plate to both sides. The starting bar/sled weight is explicit. Choose the target unfinished set before applying.
 - Daily targets default to the exact matrix. The set stepper can change today's plan to 1–10 sets without changing the exercise's future default. Logged sets cannot be silently removed by lowering the target.
-- A three-second Undo is offered for a check/uncheck, cooldown reset, folder deletion or stopwatch reset. A later mutation replaces that undo opportunity; ordinary navigation does not. An active-day set can also be unchecked later to correct its history.
+- A three-second Undo is offered for a check/uncheck, cooldown reset, daily fatigue reset, folder deletion or ending a workout. A later mutation replaces that undo opportunity; ordinary navigation does not. An active-day set can also be unchecked later to correct its history.
 
 For dumbbells, use a consistent per-hand load convention. For unilateral movements, finish both sides before checking a set. Exercise 15, **Cable Wrist Curls & Reverse**, stays one slot exactly as supplied: finish both movements before checking. If the two movements need different loads/history, add separate custom alternates. These additional alternatives are independently scored when completed.
 
@@ -108,6 +116,12 @@ An exercise contributes once only when all its currently planned sets are checke
 
 Custom alternates inherit the parent's muscle/rest range and target cooldown but have their own exercise ID, editable tier, set target, rep range, history, seat and cooldown. Completing both the original and alternate on one day scores each once. Duplicate names are rejected after trimming/case normalization to avoid accidental duplicate records.
 
+### Reset Daily Fatigue
+
+Settings has **Reset Daily Fatigue** separately from **Reset All Cooldowns**. Fatigue reset zeros today’s score and counted-exercise total without removing set checkmarks, historical records, seat positions, timers or cooldowns. Already-complete exercise IDs are excluded from that date’s score, so an immediate recomputation or reload cannot bring old points back. Incomplete or untouched exercises add their usual points when subsequently completed. Repeated resets are safe; exclusions accumulate only for that calendar date. Previously excluded exercises stay excluded for that day even if unchecked/rechecked. Tomorrow counts normally.
+
+The header switches to “Since fatigue reset” and “exercises counted” to distinguish the new score from retained workout history. Undo restores the prior score. Cooldown reset affects readiness only; use both buttons if you want both effects.
+
 ### Reset All Cooldowns
 
 Reset increments a readiness epoch. Existing sets remain untouched, with their original timestamp, weight, reps, partial flag and epoch. All exercises immediately show Ready; only logs made after the reset establish a new last-hit indicator and start a new target cooldown. This also handles a reset and new set occurring within the same millisecond.
@@ -129,7 +143,7 @@ The application saves a versioned JSON document under `flex-log:v2:<deployment-p
 
 ### Updating the existing V2 app
 
-Replace the previous app files at the **same deployed URL/path** with these updated files. Do not clear browser data. The storage key and schema version remain V2; on load, validated older V2 data is automatically upgraded with the exact seed cooldowns and inherited alternate cooldowns. The migration preserves all pre-existing fields and records and is safe to run repeatedly. Older V2 JSON backups are also upgraded when restored. The worker cache is bumped to 2.1.0; visit online, close all app tabs/windows, then reopen to activate the update.
+Replace the previous app files at the **same deployed URL/path** with these updated files. Do not clear browser data. The storage key and schema version remain V2; on load, validated older V2 data is automatically upgraded with merged groups, Bulgarian split squats, separate fatigue-reset bookkeeping, and workout-end status. Existing exercise IDs, cooldowns and logs are retained; custom alternates follow their parent’s regrouping. The migration preserves pre-existing records, settings and links while updating only the requested group assignments and new fields and is safe to run repeatedly. Older V2 JSON backups are also upgraded when restored. The worker cache is bumped to 2.2.0; visit online, close all app tabs/windows, then reopen to activate the update.
 
 **Export / Backup Data** downloads the entire document. **Restore V2 Backup** validates IDs, relationships, dates, values and versions before asking to replace current data. It is replacement, not merging. Corrupt stored data is never automatically overwritten, and a recovery download is offered.
 
@@ -153,9 +167,10 @@ Run on Node.js 20+:
 npm test
 ```
 
-No dependency installation is required. **32 automated tests passed**, covering:
+No dependency installation is required. **39 automated tests passed**, covering:
 
-- Exact seed names, tiers and set counts;
+- Original 27 seed names, tiers and prescriptions plus Bulgarian split squats;
+- Merged-group migration, linked alternate movement, separate fatigue reset and workout end/restart behavior;
 - Calendar midnight, year boundaries and both DST changes;
 - Exact 27-exercise cooldown mapping, three-/seven-day readiness thresholds and independent rotation partners;
 - Non-destructive migration of older V2 state/backups, alternate inheritance and migration idempotence;

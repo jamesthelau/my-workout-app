@@ -1,17 +1,17 @@
 // Model: one exercise ID is shared by the muscle list, folders and active tray.
 export const GROUPS = [
-  ['upper-chest','Upper Chest','upper'],['mid-chest','Mid / Lower Chest','upper'],
+  ['chest','Chest','upper'],
   ['mid-back','Mid-Back','upper'],['lats','Lats','upper'],['front-delts','Front Delts','upper'],
   ['side-delts','Side Delts','upper'],['rear-delts','Rear Delts','upper'],
   ['biceps','Biceps / Brachialis','upper'],['forearms','Forearms','upper'],['triceps','Triceps','upper'],
   ['quads','Quads','lower'],['hamstrings','Hamstrings','lower'],['glutes','Glutes','lower'],
-  ['adductors','Adductors','lower'],['calves','Calves','lower'],['core-flexion','Core · Flexion','core'],
-  ['core-stability','Core · Stability','core']
+  ['misc-legs','Misc Legs','lower'],['core','Core','core']
 ];
+const legacyGroups = {'upper-chest':'chest','mid-chest':'chest',adductors:'misc-legs',calves:'misc-legs','core-flexion':'core','core-stability':'core'};
 const seedRows = [
-  ['Incline Smith Machine Press','upper-chest',1,3,'5–8',180,240],
-  ['Incline Cable Fly','upper-chest',2,3,'8–12',120,180],
-  ['Normal Machine Fly (Pec Deck)','mid-chest',3,2,'12–15',120,120],
+  ['Incline Smith Machine Press','chest',1,3,'5–8',180,240],
+  ['Incline Cable Fly','chest',2,3,'8–12',120,180],
+  ['Normal Machine Fly (Pec Deck)','chest',3,2,'12–15',120,120],
   ['Chest-Supported T-Bar Row','mid-back',1,3,'6–10',180,180],
   ['Single-Arm DB Row (to hip)','lats',2,3,'8–10',120,180],
   ['Half-Kneeling Single-Arm Pulldown','lats',2,3,'8–12',120,120],
@@ -31,13 +31,14 @@ const seedRows = [
   ['Seated Leg Extensions','quads',2,3,'10–15',120,120],
   ['RDL (Barbell or DB)','hamstrings',1,3,'6–8',180,300],
   ['Seated Machine Leg Curl','hamstrings',2,3,'8–12',120,120],
-  ['Barbell Hip Thrust','glutes',2,3,'8–12',120,180],
-  ['Seated Adductor Machine','adductors',2,3,'10–15',120,120],
-  ['Standing Machine Calf Raise','calves',3,3,'8–12',90,120],
-  ['Weighted Cable Crunches','core-flexion',3,3,'10–15',90,90],
-  ['Pallof Press','core-stability',3,3,'10–15',90,90]
+  ['Barbell Hip Thrust','misc-legs',2,3,'8–12',120,180],
+  ['Seated Adductor Machine','misc-legs',2,3,'10–15',120,120],
+  ['Standing Machine Calf Raise','misc-legs',3,3,'8–12',90,120],
+  ['Weighted Cable Crunches','core',3,3,'10–15',90,90],
+  ['Pallof Press','core',3,3,'10–15',90,90],
+  ['Bulgarian Split Squat','glutes',1,3,'8–12',120,180]
 ];
-const targetCooldowns = [3,7,7,7,7,7,7,7,3,3,3,7,7,3,3,7,7,3,3,3,7,7,7,7,3,3,7];
+const targetCooldowns = [3,7,7,7,7,7,7,7,3,3,3,7,7,3,3,7,7,3,3,3,7,7,7,7,3,3,7,3];
 const rotationPartners = {e2:'e3',e3:'e2',e21:'e22',e22:'e21'};
 export const SEED = seedRows.map(([name,group,tier,sets,reps,min,max],i)=>({id:`e${i+1}`,name,group,tier,sets,reps,rest:[min,max],targetCooldown:targetCooldowns[i],parent:null,seat:''}));
 export const copy = value => structuredClone(value);
@@ -53,9 +54,9 @@ export function ordinal(day) {
 }
 export const daysBetween = (earlier,later) => Math.max(0,ordinal(later)-ordinal(earlier));
 export function initialState() {
-  return {version:2,exercises:copy(SEED),history:[],drafts:{},plans:{},epoch:0,
+  return {version:2,exercises:copy(SEED),history:[],drafts:{},plans:{},epoch:0,fatigueResets:{},
     folders:[{id:'cables',name:'Cable Station',exerciseIds:['e2','e6','e9','e15','e17','e18','e26','e27']}],
-    pinned:[],timers:{},clock:{startedAt:null,elapsed:0},
+    pinned:[],timers:{},clock:{startedAt:null,elapsed:0,ended:false},
     settings:{unit:'lbs',sound:true,haptics:true},rest:{}};
 }
 export const exerciseById = (s,exerciseId) => s.exercises.find(e=>e.id===exerciseId);
@@ -68,7 +69,8 @@ export function completion(s,exerciseId,day=localDay()) {
   return {target,done,complete:done===target};
 }
 export function fatigue(s,day=localDay()) {
-  const complete=s.exercises.filter(e=>completion(s,e.id,day).complete);
+  const excluded=new Set(s.fatigueResets[day]||[]);
+  const complete=s.exercises.filter(e=>!excluded.has(e.id)&&completion(s,e.id,day).complete);
   return {score:complete.reduce((n,e)=>n+points(e),0),count:complete.length};
 }
 export function readiness(s,exerciseId,day=localDay()) {
@@ -81,11 +83,20 @@ export function readinessStatus(s,exerciseId,day=localDay()) {
   return {hit,targetCooldown,remaining,ready:remaining===0};
 }
 export function migrateState(input) {
-  // Validate before upgrading. Add cooldowns without replacing any existing log.
-  const s=copy(validateState(input,{allowMissingCooldown:true}));
-  for(const seed of SEED)exerciseById(s,seed.id).targetCooldown=seed.targetCooldown;
-  for(const exercise of s.exercises)if(exercise.targetCooldown===undefined)
-    exercise.targetCooldown=exerciseById(s,exercise.parent)?.targetCooldown ?? 3;
+  // Validate legacy data first; preserve exercise IDs and every historical record.
+  const s=copy(validateState(input,{allowMissingCooldown:true,legacy:true}));
+  for(const exercise of s.exercises)exercise.group=legacyGroups[exercise.group]||exercise.group;
+  for(const seed of SEED){
+    const existing=exerciseById(s,seed.id);
+    if(existing){existing.targetCooldown=seed.targetCooldown;existing.group=seed.group;}
+    else s.exercises.push(copy(seed));
+  }
+  for(const exercise of s.exercises){
+    if(exercise.parent)exercise.group=exerciseById(s,exercise.parent).group;
+    if(exercise.targetCooldown===undefined)exercise.targetCooldown=exerciseById(s,exercise.parent)?.targetCooldown ?? 3;
+  }
+  s.fatigueResets ||= {};
+  s.clock.ended ??= false;
   return validateState(s);
 }
 export function previousSession(s,exerciseId,day=localDay()) {
@@ -122,7 +133,7 @@ export function logSet(s,exerciseId,index,input,now=new Date(),recordId=id()) {
   s.plans[dayKey(day,exerciseId)]=target;
   const seconds=s.rest[exerciseId] || (exercise.rest[0]+exercise.rest[1])/2;
   s.timers[exerciseId]={end:now.getTime()+seconds*1000,duration:seconds,recordId};
-  if(s.clock.startedAt===null&&s.clock.elapsed===0)s.clock.startedAt=now.getTime();
+  if(s.clock.ended||s.clock.startedAt===null&&s.clock.elapsed===0)startWorkout(s,now.getTime());
   return record;
 }
 export function unlogSet(s,exerciseId,index,day=localDay()) {
@@ -163,6 +174,10 @@ export function togglePin(s,exerciseId) {
   s.pinned.push(exerciseId);
 }
 export function resetCooldowns(s) {s.epoch++;}
+export function resetDailyFatigue(s,day=localDay()) {
+  const completed=s.exercises.filter(e=>completion(s,e.id,day).complete).map(e=>e.id);
+  s.fatigueResets[day]=[...new Set([...(s.fatigueResets[day]||[]),...completed])];
+}
 export function changeUnits(s,unit) {
   if(unit===s.settings.unit)return;
   for(const draft of Object.values(s.drafts))if(draft.weight!==''&&Number.isFinite(Number(draft.weight)))draft.weight=String(inUnit({weight:Number(draft.weight),unit:s.settings.unit},unit));
@@ -170,6 +185,13 @@ export function changeUnits(s,unit) {
 }
 export function workoutMillis(s,now=Date.now()) {return s.clock.elapsed+(s.clock.startedAt===null?0:Math.max(0,now-s.clock.startedAt));}
 export function pauseClock(s,now=Date.now()) {s.clock.elapsed=workoutMillis(s,now);s.clock.startedAt=null;}
+export function startWorkout(s,now=Date.now()) {
+  if(s.clock.ended)s.clock.elapsed=0;
+  s.clock.ended=false;s.clock.startedAt=now;
+}
+export function endWorkout(s,now=Date.now()) {
+  pauseClock(s,now);s.clock.ended=true;s.timers={};s.pinned=[];
+}
 export function graphSeries(s,exerciseId,metric='volume',unit=s.settings.unit) {
   const grouped=new Map();
   for(const record of s.history.filter(r=>r.exerciseId===exerciseId)){
@@ -179,7 +201,7 @@ export function graphSeries(s,exerciseId,metric='volume',unit=s.settings.unit) {
   }
   return [...grouped].sort((a,b)=>a[0].localeCompare(b[0])).map(([day,value])=>({day,value:Math.round(value*100)/100}));
 }
-export function validateState(s,{allowMissingCooldown=false}={}) {
+export function validateState(s,{allowMissingCooldown=false,legacy=false}={}) {
   const fail=()=>{throw Error('Invalid Flex Log V2 backup. Existing data has not changed.');};
   const obj=x=>x&&typeof x==='object'&&!Array.isArray(x);
   const string=(x,max=100)=>typeof x==='string'&&x.trim().length>0&&x.length<=max;
@@ -191,10 +213,16 @@ export function validateState(s,{allowMissingCooldown=false}={}) {
   const exercises=new Map();
   for(const e of s.exercises){
     if(!(allowMissingCooldown&&e?.targetCooldown===undefined)&&!int(e?.targetCooldown,1,365))fail();
-    if(!obj(e)||!safeId(e.id)||exercises.has(e.id)||!string(e.name)||!GROUPS.some(g=>g[0]===e.group)||!int(e.tier,1,3)||!int(e.sets,1,10)||!string(e.reps,30)||!Array.isArray(e.rest)||e.rest.length!==2||!e.rest.every(n=>int(n,15,900))||e.rest[0]>e.rest[1]||typeof e.seat!=='string'||e.seat.length>200)fail();
+    if(!obj(e)||!safeId(e.id)||exercises.has(e.id)||!string(e.name)||!(GROUPS.some(g=>g[0]===e.group)||legacy&&Object.hasOwn(legacyGroups,e.group))||!int(e.tier,1,3)||!int(e.sets,1,10)||!string(e.reps,30)||!Array.isArray(e.rest)||e.rest.length!==2||!e.rest.every(n=>int(n,15,900))||e.rest[0]>e.rest[1]||typeof e.seat!=='string'||e.seat.length>200)fail();
     exercises.set(e.id,e);
   }
-  if(SEED.some(e=>!exercises.has(e.id)))fail();
+  if((legacy?SEED.slice(0,27):SEED).some(e=>!exercises.has(e.id)))fail();
+  if(!(legacy&&s.fatigueResets===undefined)){
+    if(!obj(s.fatigueResets))fail();
+    for(const [day,excluded] of Object.entries(s.fatigueResets))
+      if(!validDay(day)||!Array.isArray(excluded)||new Set(excluded).size!==excluded.length||excluded.some(eid=>!exercises.has(eid)))fail();
+  }
+  if(!(legacy&&s.clock.ended===undefined)&&typeof s.clock.ended!=='boolean')fail();
   for(const e of s.exercises)if(e.parent!==null&&(!exercises.has(e.parent)||e.parent===e.id||exercises.get(e.parent).parent!==null))fail();
   for(const [key,value] of Object.entries(s.plans)){const [day,eid,...extra]=key.split('|');if(extra.length||!validDay(day)||!exercises.has(eid)||!int(value,1,10))fail();}
   const records=new Map(),cells=new Set();
@@ -256,7 +284,7 @@ function boot() {
   function pips(exerciseId){const c=completion(state,exerciseId,today),records=dailyRecords(state,exerciseId,today);return `<span class="pips ${c.complete?'complete':''}" aria-label="${c.done} of ${c.target} sets"><span aria-hidden="true">${Array.from({length:c.target},(_,i)=>`<i class="${records.some(r=>r.index===i)?'done':''}"></i>`).join('')}</span><small>${c.done}/${c.target}</small></span>`;}
   function renderTop(){
     const f=fatigue(state,today);
-    $('#top').innerHTML=`<div class="load-row"><div class="load-label"><span class="eyebrow">DAILY FATIGUE</span><div><strong>${f.score}</strong><span>points <i>·</i> <b>${f.count}</b> exercises done</span></div></div><button class="clock-button" data-action="workout" aria-label="Workout stopwatch"><span class="clock-icon" aria-hidden="true">◷</span><span id="stopwatch">00:00</span><small>${state.clock.startedAt!==null?'WORKOUT':state.clock.elapsed?'PAUSED':'START'}</small></button></div><div class="daily-line"><span>Today’s benchmark <b>6–7 exercises</b></span><span>${dateLabel(today)}</span></div>
+    $('#top').innerHTML=`<div class="load-row"><div class="load-label"><span class="eyebrow">DAILY FATIGUE</span><div><strong>${f.score}</strong><span>points <i>·</i> <b>${f.count}</b> ${state.fatigueResets[today]?'exercises counted':'exercises done'}</span></div></div><button class="clock-button" data-action="workout" aria-label="Workout stopwatch"><span class="clock-icon" aria-hidden="true">◷</span><span id="stopwatch">00:00</span><small>${state.clock.ended?'ENDED':state.clock.startedAt!==null?'WORKOUT':state.clock.elapsed?'PAUSED':'START'}</small></button></div><div class="daily-line"><span>${state.fatigueResets[today]?'Since fatigue reset':'Today’s benchmark'} <b>6–7 exercises</b></span><span>${(state.clock.startedAt!==null||state.clock.elapsed>0)&&!state.clock.ended?'<button class="end-workout-button" data-action="end-workout">■ End workout</button>':dateLabel(today)}</span></div>
       <div class="active-tray ${state.pinned.length?'has-pins':''}"><div class="tray-label"><span class="eyebrow">ACTIVE <b>${state.pinned.length}/3</b></span>${state.pinned.length?'<button data-action="clear-pins" class="text-button">Clear</button>':'<span>Pin your superset. Stay in your zone.</span>'}</div>${state.pinned.length?`<div class="pin-grid">${state.pinned.map((eid,i)=>{const e=exerciseById(state,eid),status=readinessStatus(state,eid,today);return `<button class="pin-card ${status.ready?'ready':'recovering'}" data-action="open" data-id="${eid}"><span class="pin-index">${String.fromCharCode(65+i)}</span><strong>${html(e.name)}</strong><span class="pin-readiness">${status.ready?'Ready':`${status.remaining}d remaining`}</span><span class="pin-bottom">${pips(eid)}<small data-countdown="${eid}">${state.timers[eid]?'':'↗'}</small></span></button>`;}).join('')}</div>`:''}</div>`;
     tickLabels();
   }
@@ -302,7 +330,7 @@ function boot() {
       <div class="logger-tools"><div class="target-stepper"><button data-action="target-minus" data-id="${e.id}" aria-label="Remove one planned set">−</button><span>${c.target} sets</span><button data-action="target-plus" data-id="${e.id}" aria-label="Add one planned set">+</button></div><button data-action="tools" data-id="${e.id}">± Load tools</button></div>
       ${e.id==='e15'?'<p class="hint">For this paired slot, finish wrist curls and reverse curls before checking a set. Keep a consistent shared load, or add separate alternates for independent loads.</p>':''}
       <div class="logger-links"><button data-action="graph" data-id="${e.id}">↗ Progression</button><button data-action="alternate" data-id="${e.id}">＋ Custom alternate</button></div>
-      <div class="logger-bottom"><span>${c.complete?`✓ Complete · ${points(e)} fatigue points`:`${c.done}/${c.target} logged · points after all sets`}</span><button class="text-button" data-action="rest-setting" data-id="${e.id}">Rest ${duration(state.rest[e.id]||(e.rest[0]+e.rest[1])/2)}</button></div>
+      <div class="logger-bottom"><span>${c.complete?(state.fatigueResets[today]?.includes(e.id)?'✓ Complete · fatigue reset':`✓ Complete · ${points(e)} fatigue points`):`${c.done}/${c.target} logged · points after all sets`}</span><button class="text-button" data-action="rest-setting" data-id="${e.id}">Rest ${duration(state.rest[e.id]||(e.rest[0]+e.rest[1])/2)}</button></div>
     </section>`;
   }
 
@@ -320,8 +348,8 @@ function boot() {
       const folder=state.folders.find(f=>f.id===ui.modal.folderId);
       content=head('LINKED, NOT DUPLICATED',folder?'Edit station':'Create a station')+`<form id="folder-form" class="dialog-body" data-folder="${folder?.id||''}"><label>Station name<input name="name" type="text" maxlength="60" required value="${html(folder?.name||'')}" placeholder="e.g. Cable Station"></label><p class="hint">Select exercises to link. Logs and seat settings update everywhere.</p><div class="folder-checklist">${GROUPS.map(([gid,name])=>`<fieldset><legend>${name}</legend>${state.exercises.filter(e=>e.group===gid).map(e=>`<label class="folder-choice"><input type="checkbox" name="exercise" value="${e.id}" ${folder?.exerciseIds.includes(e.id)?'checked':''}><span>${html(e.name)}${e.parent?'<small>Custom alternate</small>':''}</span></label>`).join('')}</fieldset>`).join('')}</div><button type="submit" class="primary full">Save station</button>${folder?`<button type="button" class="danger full" data-action="delete-folder" data-id="${folder.id}">Delete folder · keep exercise history</button>`:''}<p id="form-error" class="error" tabindex="-1" role="alert"></p></form>`;
     }
-    if(kind==='settings')content=head('LOCAL. PRIVATE. YOURS.','Settings')+`<div class="dialog-body"><label class="setting-row"><span>Weight unit<small>Original history units are preserved.</small></span><select id="units"><option value="lbs" ${state.settings.unit==='lbs'?'selected':''}>lbs</option><option value="kg" ${state.settings.unit==='kg'?'selected':''}>kg</option></select></label><label class="setting-row"><span>Timer sound</span><input type="checkbox" id="sound" ${state.settings.sound?'checked':''}></label><label class="setting-row"><span>Haptic feedback</span><input type="checkbox" id="haptics" ${state.settings.haptics?'checked':''}></label><div class="settings-actions"><button data-action="export">↓ Export / Backup Data</button><button data-action="import">↑ Restore V2 Backup</button>${unreadable!==null?'<button data-action="raw-export">Download unreadable original</button>':''}<button data-action="install">↗ Install app</button><button class="danger" data-action="reset-cooldowns">Reset All Cooldowns</button></div><input id="backup-file" type="file" accept=".json,application/json" hidden><p class="hint">Resetting cooldowns marks every exercise Ready and clears its last-hit indicator for this block. It preserves weights, reps, dates, partial flags, seat positions and today’s completed sets / points. Undo is available for 3 seconds.</p><p class="hint">${state.history.length} saved sets · ${state.exercises.length} exercises<br>${html(offline)}</p><p class="hint">Rest days count local calendar midnights, not 24-hour periods. Ready means your exercise’s target cooldown has elapsed; Recovering shows the remaining calendar days. These are planning labels, not a physiological recovery measurement. Tier points are your planning score.</p><p class="hint">Export before clearing site data, changing browsers or moving devices. Phone settings can block wake lock, sound or vibration. Background / locked-screen alerts are not guaranteed.</p><p id="form-error" class="error" tabindex="-1" role="alert"></p></div>`;
-    if(kind==='workout')content=head('NO RUSH. JUST GOOD SETS.','Workout clock')+`<div class="dialog-body"><div class="big-clock" id="big-clock">${duration(Math.floor(workoutMillis(state)/1000))}</div><p class="hint">Starts with your first logged set, or start it manually. Keeps elapsed time through navigation and reloads.</p><div class="button-row"><button class="primary" data-action="clock-toggle">${state.clock.startedAt!==null?'Pause':state.clock.elapsed?'Resume':'Start'}</button><button data-action="clock-finish">Finish / reset clock</button></div><p class="hint">Resetting the clock does not change your sets, fatigue points or rest timers.</p></div>`;
+    if(kind==='settings')content=head('LOCAL. PRIVATE. YOURS.','Settings')+`<div class="dialog-body"><label class="setting-row"><span>Weight unit<small>Original history units are preserved.</small></span><select id="units"><option value="lbs" ${state.settings.unit==='lbs'?'selected':''}>lbs</option><option value="kg" ${state.settings.unit==='kg'?'selected':''}>kg</option></select></label><label class="setting-row"><span>Timer sound</span><input type="checkbox" id="sound" ${state.settings.sound?'checked':''}></label><label class="setting-row"><span>Haptic feedback</span><input type="checkbox" id="haptics" ${state.settings.haptics?'checked':''}></label><div class="settings-actions"><button data-action="export">↓ Export / Backup Data</button><button data-action="import">↑ Restore V2 Backup</button>${unreadable!==null?'<button data-action="raw-export">Download unreadable original</button>':''}<button data-action="install">↗ Install app</button><button class="danger" data-action="reset-fatigue">Reset Daily Fatigue</button><button class="danger" data-action="reset-cooldowns">Reset All Cooldowns</button></div><input id="backup-file" type="file" accept=".json,application/json" hidden><p class="hint">Reset Daily Fatigue clears today’s score and counted exercises, keeping set checkmarks and cooldowns. Newly completed exercises add points again. Resetting cooldowns marks every exercise Ready and clears its last-hit indicator for this block. It preserves weights, reps, dates, partial flags, seat positions and today’s completed sets / points. Undo is available for 3 seconds.</p><p class="hint">${state.history.length} saved sets · ${state.exercises.length} exercises<br>${html(offline)}</p><p class="hint">Rest days count local calendar midnights, not 24-hour periods. Ready means your exercise’s target cooldown has elapsed; Recovering shows the remaining calendar days. These are planning labels, not a physiological recovery measurement. Tier points are your planning score.</p><p class="hint">Export before clearing site data, changing browsers or moving devices. Phone settings can block wake lock, sound or vibration. Background / locked-screen alerts are not guaranteed.</p><p id="form-error" class="error" tabindex="-1" role="alert"></p></div>`;
+    if(kind==='workout')content=head('NO RUSH. JUST GOOD SETS.','Workout clock')+`<div class="dialog-body"><div class="big-clock" id="big-clock">${duration(Math.floor(workoutMillis(state)/1000))}</div><p class="hint">Starts with your first logged set, or start it manually. Keeps elapsed time through navigation and reloads.</p><div class="button-row"><button class="primary" data-action="clock-toggle">${state.clock.ended?'Start new workout':state.clock.startedAt!==null?'Pause':state.clock.elapsed?'Resume':'Start'}</button><button data-action="end-workout" class="danger" ${state.clock.ended?'disabled':''}>End workout</button></div><p class="hint">End workout saves the final duration, stops all rest timers and clears the active tray. Your logs, cooldowns and fatigue stay intact. Reset fatigue separately in Settings.</p></div>`;
     if(kind==='rest')content=head('EXERCISE TIMER',e.name,true)+`<form id="rest-form" class="dialog-body" data-id="${eid}"><label>Rest in seconds<input type="number" min="15" max="900" step="1" name="seconds" value="${state.rest[eid]||(e.rest[0]+e.rest[1])/2}" required></label><p class="hint">Prescribed range: ${duration(e.rest[0])}–${duration(e.rest[1])}. Applies to this exercise’s next checked set.</p><button class="primary full">Save rest duration</button><p id="form-error" class="error" tabindex="-1" role="alert"></p></form>`;
     if(kind==='tools')content=toolsPanel(e);
     if(kind==='graph')content=graphPanel(e);
@@ -391,7 +419,7 @@ function boot() {
       unlockAudio();const row=currentRow(eid,index),record=dailyRecords(state,eid,today).find(r=>r.index===index);
       const values={weight:row.querySelector('[data-field=weight]').value,reps:row.querySelector('[data-field=reps]').value,partial:row.querySelector('[data-field=partial]').checked};
       const completedBefore=completion(state,eid,today).complete;
-      if(mutate(s=>record?unlogSet(s,eid,index,today):logSet(s,eid,index,values),{message:record?'Set unchecked.':'Set saved.',canUndo:true})){buzz();if(!record){if(!completedBefore&&completion(state,eid,today).complete)$('#announce').textContent=`${exerciseById(state,eid).name} complete. ${points(exerciseById(state,eid))} points added.`;focusNext(eid);}}return;
+      if(mutate(s=>record?unlogSet(s,eid,index,today):logSet(s,eid,index,values),{message:record?'Set unchecked.':'Set saved.',canUndo:true})){buzz();if(!record){if(!completedBefore&&completion(state,eid,today).complete&&!state.fatigueResets[today]?.includes(eid))$('#announce').textContent=`${exerciseById(state,eid).name} complete. ${points(exerciseById(state,eid))} points added.`;focusNext(eid);}}return;
     }
     if(a==='copy'){if(mutate(s=>copyPrevious(s,eid,index,today))){buzz();currentRow(eid,index)?.querySelector('[data-field=weight]')?.focus({preventScroll:true});}return;}
     if(a==='target-plus'||a==='target-minus'){mutate(s=>changeTarget(s,eid,targetSets(s,eid,today)+(a==='target-plus'?1:-1),today));return;}
@@ -405,8 +433,9 @@ function boot() {
     if(a==='edit-folder'){showModal('folder',null,{folderId:eid});return;}
     if(a==='delete-folder'){if(mutate(s=>{s.folders=s.folders.filter(f=>f.id!==eid);},{render:false,message:'Folder removed. History kept.',canUndo:true})){closeModal();renderAll();}return;}
     if(a==='reset-cooldowns'){mutate(resetCooldowns,{message:'Cooldowns reset. History and points kept.',canUndo:true});return;}
-    if(a==='clock-toggle'){unlockAudio();mutate(s=>{if(s.clock.startedAt!==null)pauseClock(s);else s.clock.startedAt=Date.now();});return;}
-    if(a==='clock-finish'){mutate(s=>{s.clock={elapsed:0,startedAt:null};},{message:'Workout clock reset.',canUndo:true});return;}
+    if(a==='clock-toggle'){unlockAudio();mutate(s=>{if(s.clock.startedAt!==null)pauseClock(s);else startWorkout(s);});return;}
+    if(a==='end-workout'){mutate(s=>endWorkout(s),{message:'Workout ended. Logs and final time saved.',canUndo:true});return;}
+    if(a==='reset-fatigue'){mutate(s=>resetDailyFatigue(s,today),{message:'Daily fatigue reset. Logs and cooldowns kept.',canUndo:true});return;}
     if(a==='dock-toggle'){ui.dockExpanded=!ui.dockExpanded;renderDock();return;}
     if(a==='timer-plus'||a==='timer-minus'||a==='timer-stop'){
       mutate(s=>{const t=s.timers[eid];if(!t)return;if(a==='timer-stop'){delete s.timers[eid];return;}const remaining=Math.max(0,Math.ceil((t.end-Date.now())/1000)),seconds=Math.max(0,Math.min(86400,remaining+(a==='timer-plus'?30:-30)));t.end=Date.now()+seconds*1000;t.duration=Math.max(t.duration,seconds);},{render:false});renderDock();tick();return;

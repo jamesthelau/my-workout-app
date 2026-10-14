@@ -1,6 +1,6 @@
 // Increment the version after changing any offline app file.
 const PREFIX = `flex-log-v2:${self.registration.scope}:`;
-const CACHE = `${PREFIX}2.1.0`;
+const CACHE = `${PREFIX}2.2.0`;
 const FILES = ['./','index.html','styles.css','app.js','manifest.json','icons/icon-192.png','icons/icon-512.png','icons/maskable-512.png'];
 const urls = FILES.map(file=>new URL(file,self.registration.scope).href);
 self.addEventListener('install',event=>{

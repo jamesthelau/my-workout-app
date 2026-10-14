@@ -4,7 +4,7 @@ import {SEED,initialState,copy,migrateState,validateState,readinessStatus,logSet
 process.env.TZ='America/Los_Angeles';
 const at=new Date('2026-10-12T20:00:00-07:00');
 test('all 27 target cooldowns exactly match the requested asymmetric matrix',()=>{
-  assert.deepEqual(SEED.map(e=>e.targetCooldown),[3,7,7,7,7,7,7,7,3,3,3,7,7,3,3,7,7,3,3,3,7,7,7,7,3,3,7]);
+  assert.deepEqual(SEED.slice(0,27).map(e=>e.targetCooldown),[3,7,7,7,7,7,7,7,3,3,3,7,7,3,3,7,7,3,3,3,7,7,7,7,3,3,7]);
 });
 test('three-day target becomes Ready at its third local midnight',()=>{
   const s=initialState();logSet(s,'e1',0,{weight:100,reps:8},at,'three-day');
@@ -38,7 +38,7 @@ test('old V2 migration adds seed and inherited alternate cooldowns without chang
   for(const e of old.exercises)delete e.targetCooldown;
   const original=copy(old),next=migrateState(old);
   assert.equal(next.exercises.find(e=>e.id==='lying').targetCooldown,7);
-  assert.deepEqual(next.exercises.slice(0,27).map(e=>e.targetCooldown),SEED.map(e=>e.targetCooldown));
+  assert.deepEqual(next.exercises.slice(0,27).map(e=>e.targetCooldown),SEED.slice(0,27).map(e=>e.targetCooldown));
   const withoutNewFields=copy(next);for(const e of withoutNewFields.exercises)delete e.targetCooldown;
   assert.deepEqual(withoutNewFields,original);assert.deepEqual(old,original);
   assert.deepEqual(migrateState(next),next);validateState(next);

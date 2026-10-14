@@ -9,9 +9,9 @@ const record=(s,eid='e1',index=0,at=monday,overrides={})=>logSet(s,eid,index,{we
 const finish=(s,eid='e1',at=monday)=>{for(let i=0;i<targetSets(s,eid,localDay(at));i++)record(s,eid,i,at);};
 
 test('exact seed matrix: 27 names, prescriptions and independent muscle groups',()=>{
-  assert.equal(SEED.length,27);assert.equal(SEED.reduce((n,e)=>n+e.sets,0),80);
-  assert.deepEqual(SEED.map(e=>e.tier),[1,2,3,1,2,2,2,1,2,3,3,2,2,3,3,1,2,3,1,2,1,2,2,2,3,3,3]);
-  assert.deepEqual(SEED.map(e=>e.name),[
+  assert.equal(SEED.length,28);assert.equal(SEED.reduce((n,e)=>n+e.sets,0),83);
+  assert.deepEqual(SEED.slice(0,27).map(e=>e.tier),[1,2,3,1,2,2,2,1,2,3,3,2,2,3,3,1,2,3,1,2,1,2,2,2,3,3,3]);
+  assert.deepEqual(SEED.slice(0,27).map(e=>e.name),[
     'Incline Smith Machine Press','Incline Cable Fly','Normal Machine Fly (Pec Deck)','Chest-Supported T-Bar Row',
     'Single-Arm DB Row (to hip)','Half-Kneeling Single-Arm Pulldown','Neutral Grip Lat Pulldown','Seated DB Shoulder Press',
     'Behind-the-back Cable Lateral','DB Lateral Raises','Reverse Pec Deck','Incline DB Curl','Preacher Curl','DB Hammer Curl',
