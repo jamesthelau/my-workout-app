@@ -6,7 +6,7 @@ test('nine lower-body prescriptions occupy exactly three folders',()=>{
  const s=initialState();assert.deepEqual(s.groups.filter(g=>g[2]==='lower').map(g=>g[1]),['Quads','Posterior Chain','Calves & Adductors']);
  const expected={e19:['quads',1,3,'6–10',180,300],e28:['quads',2,3,'8–12',120,180],e20:['quads',2,3,'10–15',120,120],e21:['posterior-chain',1,3,'6–8',180,300],e31:['posterior-chain',2,3,'10–15',120,120],e23:['posterior-chain',2,3,'8–12',120,180],e22:['posterior-chain',2,3,'8–12',120,120],e24:['calves-adductors',2,3,'10–15',120,120],e25:['calves-adductors',3,3,'8–12',90,120]};
  for(const [id,values] of Object.entries(expected)){const e=exerciseById(s,id);assert.deepEqual([e.group,e.tier,e.sets,e.reps,...e.rest],values);}
- assert.deepEqual(s.exercises.filter(e=>e.group==='front-delts').map(e=>e.id),['e8','e16','e17','e18']);
+ assert.deepEqual(s.exercises.filter(e=>e.group==='front-delts').map(e=>e.id),['e8','e17','e18']);
 });
 test('folder uses latest hit and three midnights while movements retain independent dates',()=>{
  const s=initialState();logSet(s,'e28',0,{weight:20,reps:10},new Date('2026-10-08T20:00:00-07:00'),'b');logSet(s,'e19',0,{weight:100,reps:8},new Date('2026-10-12T20:00:00-07:00'),'h');

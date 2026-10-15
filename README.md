@@ -1,6 +1,8 @@
-# Flex Log 02 — folder readiness and editing (2.4.0)
+# Flex Log 02 — folder readiness and editing (2.6.0)
 
 Offline-first HTML, CSS and JavaScript PWA. All workout data stays in localStorage. No accounts, backend, analytics, external fonts or build step.
+
+Machine Dips now use Tier 2 / 2 points, 3 × 8–10 and 1 RIR. Reverse Curls default to 2 × 10–15 and 0 RIR. Existing reverse-curl sessions and drafts retain their original set target to avoid losing third sets; untouched future sessions use two. All saved history remains intact. The supplied final table is reproduced in `EXERCISES.md`, and the app uses its exercise order.
 
 ## Update your existing app
 
@@ -14,7 +16,7 @@ Existing V2 state migrates automatically. Exercise IDs, logs, seat memory, stati
 
 - `index.html`: app shell
 - `styles.css`: mobile OLED-black layout
-- `app.js`: model, 31 seeded exercises, UI, logging, editing and graphs
+- `app.js`: model, 30 active seeded exercises, UI, logging, editing and graphs
 - `sw.js`: repository-relative offline cache
 - `manifest.json`: standalone installation
 - `icons/`: required application icons
@@ -23,6 +25,8 @@ Existing V2 state migrates automatically. Exercise IDs, logs, seat memory, stati
 For local use, run `python3 -m http.server 8080` inside `flex-log-v2`, then open `http://localhost:8080/`. Do not open index.html directly.
 
 For GitHub Pages, upload all contents of `flex-log-v2` to the repository root, then choose Settings → Pages → Deploy from a branch → main → / (root). Visit the returned HTTPS URL. Once Settings says offline app files are ready, use the browser’s Install / Add to Home Screen command. On iPhone use Safari → Share → Add to Home Screen. No dependency install is needed. This package has not been deployed to your account.
+
+The complete current list with sets, reps, rest and fatigue points is in `EXERCISES.md`. Target RIR is displayed in each exercise logger and can be edited through Edit exercise. Each seed uses the exact supplied target, including exceptions to tier defaults.
 
 ## Lower-body matrix
 
@@ -40,7 +44,7 @@ The lower-body filter contains exactly these three master folders. Within each, 
 | Calves & Adductors | Seated Adductor Machine | 2 / 2 | 3 × 10–15 | 2 min |
 | Calves & Adductors | Standing Machine Calf Raise | 3 / 1 | 3 × 8–12 | 90–120 sec |
 
-Front Delts & Triceps combines the shoulder press, dips, overhead cable extension and cable pushdown. Chest and Core remain combined. Reverse curls, cable wrist curls and cable wrist extensions remain separate movements.
+Machine Dips are in Chest. Front Delts & Triceps combines Machine Shoulder Press, overhead cable extension and cable pushdown. Chest and Core remain combined. Reverse curls and cable wrist curls remain separate movements. Cable wrist extensions are removed from active lists; any old history is retained.
 
 ## Two-tier readiness
 
@@ -74,10 +78,10 @@ Deleting an exercise archives it and its alternates, removes active pins/station
 - JSON export/import. Import validates and replaces data, rather than merging it.
 - Best-effort audio, vibration and wake lock. Background/locked-screen alerts depend on browser and device support.
 
-For unilateral exercises, finish both sides before checking a set. Keep a consistent load convention for dumbbells. Cable wrist curls and extensions are logged separately.
+For unilateral exercises, finish both sides before checking a set. Keep a consistent load convention for dumbbells. Cable wrist curls are logged separately from reverse curls.
 
 ## Validation
 
-Run `npm test` with Node.js 20+. No npm dependencies are needed. **45 automated tests pass**, covering the exact lower-body matrix, midnight/DST arithmetic, folder readiness, edit persistence, history-preserving deletion/restoration, migration, fatigue, timers, graphs, backup validation and simulated offline cache lifecycle. Migration was also checked directly against the previous downloadable app’s model.
+Run `npm test` with Node.js 20+. No npm dependencies are needed. **49 automated tests pass**, covering the exact lower-body matrix, midnight/DST arithmetic, folder readiness, edit persistence, history-preserving deletion/restoration, migration, fatigue, timers, graphs, backup validation and simulated offline cache lifecycle. Migration was also checked directly against the previous downloadable app’s model.
 
 Browser/phone visual and touch verification remains untested: the browser runtime could not be downloaded in this environment. Before gym use, check long-press versus scrolling, deletion/undo, adding an exercise, offline reopening and device timer alerts on your phone.

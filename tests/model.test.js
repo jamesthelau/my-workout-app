@@ -9,14 +9,14 @@ const record=(s,eid='e1',index=0,at=monday,overrides={})=>logSet(s,eid,index,{we
 const finish=(s,eid='e1',at=monday)=>{for(let i=0;i<targetSets(s,eid,localDay(at));i++)record(s,eid,i,at);};
 
 test('exact seed matrix: 31 names, prescriptions and independent muscle groups',()=>{
-  assert.equal(SEED.length,31);assert.equal(SEED.reduce((n,e)=>n+e.sets,0),92);
-  assert.deepEqual(SEED.slice(0,27).map(e=>e.tier),[1,2,3,1,2,2,2,1,2,3,3,2,2,3,3,1,2,3,1,2,1,2,2,2,3,3,3]);
+  assert.equal(SEED.length,31);assert.equal(SEED.reduce((n,e)=>n+e.sets,0),91);
+  assert.deepEqual(SEED.slice(0,27).map(e=>e.tier),[1,2,3,1,2,2,2,1,2,3,3,2,2,3,3,2,2,3,1,2,1,2,2,2,3,3,3]);
   assert.deepEqual(SEED.slice(0,27).map(e=>e.name),[
     'Incline Smith Machine Press','Incline Cable Fly','Pec Deck','Chest-Supported T-Bar Row',
-    'Single-Arm Dumbbell Row','Half-Kneeling Single-Arm Pulldown','Neutral Grip Lat Pulldown','Seated Dumbbell Shoulder Press',
+    'Single-Arm Dumbbell Row','Half-Kneeling Single-Arm Pulldown','Neutral Grip Lat Pulldown','Machine Shoulder Press',
     'Behind-the-Back Cable Lateral Raise','Dumbbell Lateral Raise','Reverse Pec Deck','Incline Dumbbell Curl','Preacher Curl','Dumbbell Hammer Curl',
-    'Cable Wrist Curl','Dips','Cross-Body Overhead Cable Triceps Extension','Cross-Body Cable Triceps Pushdown','Hack Squat',
-    'Seated Leg Extensions','Romanian Deadlift (Barbell or Dumbbells)','Seated Machine Leg Curl','Barbell Hip Thrust','Seated Adductor Machine',
+    'Cable Wrist Curl','Machine Dips','Cross-Body Overhead Cable Triceps Ext.','Cross-Body Cable Triceps Pushdown','Hack Squat',
+    'Seated Leg Extensions','Romanian Deadlift (Barbell or DB)','Seated Machine Leg Curl','Barbell Hip Thrust','Seated Adductor Machine',
     'Standing Machine Calf Raise','Weighted Cable Crunches','Pallof Press']);
   assert.deepEqual(SEED[0].rest,[180,240]);assert.deepEqual(SEED[18].rest,[180,300]);
   assert.deepEqual(SEED[14].rest,[60,90]);assert.equal(SEED[2].sets,2);

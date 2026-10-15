@@ -11,7 +11,7 @@ test('old JM and combined wrist histories migrate independently and idempotently
  assert.equal(next.history.length,6);assert.equal(next.history.filter(r=>r.exerciseId==='e16').length,0);
  assert.equal(next.history.filter(r=>r.exerciseId==='legacy-e16').length,3);
  assert.equal(next.history.filter(r=>r.exerciseId==='legacy-e15').length,3);
- assert.deepEqual(fatigue(next),before);assert.equal(exerciseById(next,'e16').name,'Dips');
+ assert.deepEqual(fatigue(next),before);assert.equal(exerciseById(next,'e16').name,'Machine Dips');
  assert.deepEqual(migrateState(next),next);
 });
 test('unpinning one exercise leaves other pins, timers and history unchanged',()=>{

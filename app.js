@@ -16,7 +16,7 @@ const seedRows = [
   ['Single-Arm Dumbbell Row','lats',2,3,'8–10',120,180],
   ['Half-Kneeling Single-Arm Pulldown','lats',2,3,'8–12',120,120],
   ['Neutral Grip Lat Pulldown','lats',2,3,'8–12',120,120],
-  ['Seated Dumbbell Shoulder Press','front-delts',1,3,'6–10',180,180],
+  ['Machine Shoulder Press','front-delts',1,3,'6–10',180,180],
   ['Behind-the-Back Cable Lateral Raise','side-delts',2,3,'10–12',120,120],
   ['Dumbbell Lateral Raise','side-delts',3,3,'12–15',90,120],
   ['Reverse Pec Deck','rear-delts',3,3,'12–15',90,120],
@@ -24,12 +24,12 @@ const seedRows = [
   ['Preacher Curl','biceps',2,3,'10–12',120,120],
   ['Dumbbell Hammer Curl','biceps',3,3,'10–15',90,120],
   ['Cable Wrist Curl','forearms',3,3,'12–15',60,90],
-  ['Dips','front-delts',1,3,'6–10',180,180],
-  ['Cross-Body Overhead Cable Triceps Extension','front-delts',2,3,'10–12',120,120],
+  ['Machine Dips','chest',2,3,'8–10',180,180],
+  ['Cross-Body Overhead Cable Triceps Ext.','front-delts',2,3,'10–12',120,120],
   ['Cross-Body Cable Triceps Pushdown','front-delts',3,3,'10–15',90,120],
   ['Hack Squat','quads',1,3,'6–10',180,300],
   ['Seated Leg Extensions','quads',2,3,'10–15',120,120],
-  ['Romanian Deadlift (Barbell or Dumbbells)','posterior-chain',1,3,'6–8',180,300],
+  ['Romanian Deadlift (Barbell or DB)','posterior-chain',1,3,'6–8',180,300],
   ['Seated Machine Leg Curl','posterior-chain',2,3,'8–12',120,120],
   ['Barbell Hip Thrust','posterior-chain',2,3,'8–12',120,180],
   ['Seated Adductor Machine','calves-adductors',2,3,'10–15',120,120],
@@ -37,12 +37,13 @@ const seedRows = [
   ['Weighted Cable Crunches','core',3,3,'10–15',90,90],
   ['Pallof Press','core',3,3,'10–15',90,90],
   ['Bulgarian Split Squat','quads',2,3,'8–12',120,180],
-  ['Reverse Curl','forearms',3,3,'10–15',90,120],
+  ['Reverse Curl','forearms',3,2,'10–15',90,120],
   ['Cable Wrist Extension','forearms',3,3,'12–15',60,90],
   ['45-Degree Back Extension','posterior-chain',2,3,'10–15',120,120]
 ];
 const targetCooldowns = [3,7,7,7,7,7,7,7,3,3,3,7,7,3,3,7,7,3,3,3,7,7,7,7,3,3,7,7,3,3];
-export const SEED = seedRows.map(([name,group,tier,sets,reps,min,max],i)=>({id:`e${i+1}`,name,group,tier,sets,reps,rest:[min,max],targetCooldown:targetCooldowns[i] || 7,parent:null,seat:''}));
+const rirTargets = ['1–2','0–1','0','1–2','1','1','1','1–2','0–1','0','0','1','0','0','0','1','0–1','0','1–2','0','1–2','0–1','1','0–1','0','0–1','1','1','0','','1'];
+export const SEED = seedRows.map(([name,group,tier,sets,reps,min,max],i)=>({id:`e${i+1}`,name,group,tier,sets,reps,rir:rirTargets[i],rest:[min,max],targetCooldown:targetCooldowns[i] || 7,parent:null,seat:'',...(i===29?{archived:true}:{})}));
 export const copy = value => structuredClone(value);
 export const id = () => crypto.randomUUID();
 export const nameKey = name => name.trim().normalize('NFKC').toLowerCase();
@@ -56,8 +57,8 @@ export function ordinal(day) {
 }
 export const daysBetween = (earlier,later) => Math.max(0,ordinal(later)-ordinal(earlier));
 export function initialState() {
-  return {version:2,revision:4,groups:copy(GROUPS),hiddenGroups:[],exercises:copy(SEED),history:[],drafts:{},plans:{},epoch:0,fatigueResets:{},
-    folders:[{id:'cables',name:'Cable Station',exerciseIds:['e2','e6','e9','e15','e30','e17','e18','e26','e27']}],
+  return {version:2,revision:6,groups:copy(GROUPS),hiddenGroups:[],exercises:copy(SEED),history:[],drafts:{},plans:{},epoch:0,fatigueResets:{},
+    folders:[{id:'cables',name:'Cable Station',exerciseIds:['e2','e6','e9','e15','e17','e18','e26','e27']}],
     pinned:[],timers:{},clock:{startedAt:null,elapsed:0,ended:false},
     settings:{unit:'lbs',sound:true,haptics:true},rest:{}};
 }
@@ -87,7 +88,13 @@ export function readinessStatus(s,exerciseId,day=localDay()) {
 export function migrateState(input) {
   // Validate legacy data first; preserve exercise IDs and every historical record.
   const s=copy(validateState(input,{allowMissingCooldown:true,legacy:true}));
-  if(s.revision>=4)return validateState(s);
+  if(s.revision>=6)return validateState(s);
+  // Keep existing reverse-curl sessions/drafts at their original planned set count.
+  for(const day of new Set([...s.history.filter(r=>r.exerciseId==='e29').map(r=>r.day),...Object.keys(s.drafts).filter(k=>k.split('|')[1]==='e29').map(k=>k.split('|')[0])])){
+    s.plans[dayKey(day,'e29')] ||= exerciseById(s,'e29').sets;
+  }
+  if(s.revision===5)return updatePrescriptions(s);
+  if(s.revision===4)return updateMachineExercises(s);
   // Preserve old performances without attributing them to a different movement.
   for(const [eid,oldName] of [['e16','JM Press'],['e15','Cable Wrist Curls & Reverse']]){
     const old=exerciseById(s,eid);
@@ -120,8 +127,32 @@ export function migrateState(input) {
   }
   s.fatigueResets ||= {};
   s.clock.ended ??= false;
-  s.revision=4;
+  return updateMachineExercises(s);
+}
+function updateMachineExercises(s) {
+  const dips=exerciseById(s,'e16');
+  dips.name='Machine Dips';dips.group='chest';
+  for(const e of s.exercises)if(e.parent==='e16')e.group='chest';
+  exerciseById(s,'e8').name='Machine Shoulder Press';
+  archiveExercise(s,'e30');
+  return updatePrescriptions(s);
+}
+function updatePrescriptions(s) {
+  for(const seed of SEED){
+    const e=exerciseById(s,seed.id);e.rir=seed.rir;
+    if(seed.id==='e16'){e.tier=2;e.reps='8–10';}
+    if(seed.id==='e29')e.sets=2;
+    if(seed.id==='e21'&&e.name==='Romanian Deadlift (Barbell or Dumbbells)')e.name=seed.name;
+    if(seed.id==='e17'&&e.name==='Cross-Body Overhead Cable Triceps Extension')e.name=seed.name;
+  }
+  for(const e of s.exercises)if(e.rir===undefined)e.rir='';
+  s.revision=6;
   return validateState(s);
+}
+export function setRir(s,eid,value){
+  if(typeof value!=='string'||!/^$|^([0-9]|10)([–-]([0-9]|10))?$/.test(value))throw Error('Use a RIR number or range from 0 to 10, or leave blank.');
+  const nums=value.split(/[–-]/).map(Number);if(nums.length===2&&nums[0]>nums[1])throw Error('RIR range must increase.');
+  exerciseById(s,eid).rir=value.replace('-','–');
 }
 export function previousSession(s,exerciseId,day=localDay()) {
   const records=s.history.filter(r=>r.exerciseId===exerciseId&&r.day<day);
@@ -243,6 +274,7 @@ export function validateState(s,{allowMissingCooldown=false,legacy=false}={}) {
   for(const e of s.exercises){
     if(!(allowMissingCooldown&&e?.targetCooldown===undefined)&&!int(e?.targetCooldown,1,365))fail();
     if(!obj(e)||!safeId(e.id)||exercises.has(e.id)||!string(e.name)||!((s.groups||GROUPS).some(g=>g[0]===e.group)||legacy&&Object.hasOwn(legacyGroups,e.group))||!int(e.tier,1,3)||!int(e.sets,1,10)||!string(e.reps,30)||!Array.isArray(e.rest)||e.rest.length!==2||!e.rest.every(n=>int(n,15,900))||e.rest[0]>e.rest[1]||typeof e.seat!=='string'||e.seat.length>200)fail();
+    if(s.revision>=6&&(typeof e.rir!=='string'||!/^$|^([0-9]|10)([–-]([0-9]|10))?$/.test(e.rir)||e.rir.includes('–')&&Number(e.rir.split('–')[0])>Number(e.rir.split('–')[1])))fail();
     if(e.archived!==undefined&&typeof e.archived!=='boolean')fail();
     exercises.set(e.id,e);
   }
@@ -309,7 +341,7 @@ export function moveExercise(s,eid,gid){
 }
 export function createExercise(s,gid,name,{tier=2,sets=3,reps='8–12',rest=120}={},newId=id()){
   if(!Number.isInteger(tier)||tier<1||tier>3||!Number.isInteger(sets)||sets<1||sets>10||!Number.isInteger(rest)||rest<15||rest>900||!reps.trim()||reps.length>30)throw Error('Check the tier, sets, reps and rest duration.');
-  const e={id:newId,name:'',group:gid,tier,sets,reps,rest:[rest,rest],targetCooldown:3,parent:null,seat:''};
+  const e={id:newId,name:'',group:gid,tier,sets,reps,rir:'',rest:[rest,rest],targetCooldown:3,parent:null,seat:''};
   s.exercises.push(e);try{renameExercise(s,newId,name);moveExercise(s,newId,gid);}catch(error){s.exercises.pop();throw error;}return e;
 }
 
@@ -367,7 +399,7 @@ function boot() {
     const visible=filtered(state.exercises);
     if(ui.page==='muscles'){
       $('#content').innerHTML=state.groups.map(([gid,name])=>{
-        const order=['e19','e28','e20','e21','e31','e23','e22','e24','e25'];
+        const order=['e1','e16','e2','e3','e19','e28','e20','e21','e23','e31','e22','e24','e25'];
         const rank=e=>{const i=order.indexOf(e.parent||e.id);return i<0?100+state.exercises.findIndex(x=>x.id===(e.parent||e.id)):i;};
         const list=visible.filter(e=>e.group===gid).sort((a,b)=>rank(a)-rank(b)||Number(!!a.parent)-Number(!!b.parent));
         if(state.hiddenGroups.includes(gid)||(!list.length&&(ui.search||ui.filter!=='all'&&state.groups.find(g=>g[0]===gid)[2]!==ui.filter)))return '';
@@ -386,7 +418,7 @@ function boot() {
   function logger(e){
     const r=readiness(state,e.id,today),c=completion(state,e.id,today),records=dailyRecords(state,e.id,today),previous=previousSession(state,e.id,today),unit=state.settings.unit;
     const prior=previous[0];
-    return `<section class="logger" data-logger="${e.id}"><div class="prescription"><span>${e.reps} reps</span><span>${duration(e.rest[0])}${e.rest[0]!==e.rest[1]?`–${duration(e.rest[1])}`:''} rest</span><span>T${e.tier} · ${points(e)} pts</span></div>
+    return `<section class="logger" data-logger="${e.id}"><div class="prescription"><span>${e.reps} reps</span><span>Target RIR: ${html(e.rir||'Not set')}</span><span>${duration(e.rest[0])}${e.rest[0]!==e.rest[1]?`–${duration(e.rest[1])}`:''} rest</span><span>T${e.tier} · ${points(e)} pts</span></div>
 
       <div class="memory-line"><span>${r?`Last hit <strong>${dateLabel(r.day)}</strong>`:'No hit in this training block'}</span>${prior?`<small>Previous session: ${dateLabel(prior.day)}</small>`:'<small>Build your baseline.</small>'}</div>
       <label class="seat-label"><span>Pin/Seat Pos</span><input type="text" maxlength="200" autocomplete="off" data-seat="${e.id}" value="${html(e.seat)}" placeholder="${html(e.seat||'e.g. Chair 2')}"></label>
@@ -412,7 +444,7 @@ function boot() {
     const {kind,id:eid}=ui.modal,e=eid?exerciseById(state,eid):null;
     let content='';
     if(kind==='log')content=head(state.groups.find(g=>g[0]===e.group)[1],e.name)+`<div class="dialog-body">${state.pinned.length>1?`<nav class="superset-tabs" aria-label="Active superset">${state.pinned.map((pid,i)=>`<button data-action="open" data-id="${pid}" class="${pid===eid?'selected':''}"><span>${String.fromCharCode(65+i)}</span>${html(exerciseById(state,pid).name)}<small data-countdown="${pid}"></small></button>`).join('')}</nav>`:''}${logger(e)}</div>`;
-    if(kind==='alternate')content=head('INDEPENDENT HISTORY','Add custom alternate',true)+`<form id="alternate-form" class="dialog-body" data-parent="${eid}"><p class="hint">Under ${html(e.name)}. This variation gets its own history, readiness, seat memory and fatigue points.</p><label>Name<input name="name" type="text" maxlength="100" required placeholder="e.g. Lying Leg Curl" autocomplete="off"></label><div class="form-grid"><label>Tier<select name="tier">${[1,2,3].map(t=>`<option value="${t}" ${t===e.tier?'selected':''}>Tier ${t} · ${4-t} pts</option>`).join('')}</select></label><label>Sets<input type="number" name="sets" value="${e.sets}" min="1" max="10" required></label></div><label>Rep range<input type="text" name="reps" value="${html(e.reps)}" maxlength="30" required></label><p class="hint">Rest is inherited from the parent. This alternate’s last-hit date remains independent.</p><button class="primary full" type="submit">Create alternate</button><p id="form-error" class="error" tabindex="-1" role="alert"></p></form>`;
+    if(kind==='alternate')content=head('INDEPENDENT HISTORY','Add custom alternate',true)+`<form id="alternate-form" class="dialog-body" data-parent="${eid}"><p class="hint">Under ${html(e.name)}. This variation gets its own history, readiness, seat memory and fatigue points.</p><label>Name<input name="name" type="text" maxlength="100" required placeholder="e.g. Lying Leg Curl" autocomplete="off"></label><div class="form-grid"><label>Tier<select name="tier">${[1,2,3].map(t=>`<option value="${t}" ${t===e.tier?'selected':''}>Tier ${t} · ${4-t} pts</option>`).join('')}</select></label><label>Sets<input type="number" name="sets" value="${e.sets}" min="1" max="10" required></label></div><label>Rep range<input type="text" name="reps" value="${html(e.reps)}" maxlength="30" required></label><label>Target RIR<input name="rir" maxlength="5" value="${html(e.rir||'')}" placeholder="e.g. 1–2"></label><p class="hint">Rest is inherited from the parent. This alternate’s last-hit date remains independent.</p><button class="primary full" type="submit">Create alternate</button><p id="form-error" class="error" tabindex="-1" role="alert"></p></form>`;
     if(kind==='folder'){
       const folder=state.folders.find(f=>f.id===ui.modal.folderId);
       content=head('LINKED, NOT DUPLICATED',folder?'Edit station':'Create a station')+`<form id="folder-form" class="dialog-body" data-folder="${folder?.id||''}"><label>Station name<input name="name" type="text" maxlength="60" required value="${html(folder?.name||'')}" placeholder="e.g. Cable Station"></label><p class="hint">Select exercises to link. Logs and seat settings update everywhere.</p><div class="folder-checklist">${state.groups.map(([gid,name])=>`<fieldset><legend>${html(name)}</legend>${state.exercises.filter(e=>e.group===gid&&!e.archived).map(e=>`<label class="folder-choice"><input type="checkbox" name="exercise" value="${e.id}" ${folder?.exerciseIds.includes(e.id)?'checked':''}><span>${html(e.name)}${e.parent?'<small>Custom alternate</small>':''}</span></label>`).join('')}</fieldset>`).join('')}</div><button type="submit" class="primary full">Save station</button>${folder?`<button type="button" class="danger full" data-action="delete-folder" data-id="${folder.id}">Delete folder · keep exercise history</button>`:''}<p id="form-error" class="error" tabindex="-1" role="alert"></p></form>`;
@@ -420,12 +452,12 @@ function boot() {
     if(kind==='settings')content=head('LOCAL. PRIVATE. YOURS.','Settings')+`<div class="dialog-body"><label class="setting-row"><span>Weight unit<small>Original history units are preserved.</small></span><select id="units"><option value="lbs" ${state.settings.unit==='lbs'?'selected':''}>lbs</option><option value="kg" ${state.settings.unit==='kg'?'selected':''}>kg</option></select></label><label class="setting-row"><span>Timer sound</span><input type="checkbox" id="sound" ${state.settings.sound?'checked':''}></label><label class="setting-row"><span>Haptic feedback</span><input type="checkbox" id="haptics" ${state.settings.haptics?'checked':''}></label><div class="settings-actions"><button data-action="export">↓ Export / Backup Data</button><button data-action="import">↑ Restore V2 Backup</button>${unreadable!==null?'<button data-action="raw-export">Download unreadable original</button>':''}<button data-action="install">↗ Install app</button><button class="danger" data-action="reset-fatigue">Reset Daily Fatigue</button><button class="danger" data-action="reset-cooldowns">Reset All Cooldowns</button></div><input id="backup-file" type="file" accept=".json,application/json" hidden><p class="hint">Reset Daily Fatigue clears today’s score and counted exercises, keeping set checkmarks and cooldowns. Newly completed exercises add points again. Resetting cooldowns marks every folder Ready and clears its last-hit indicator for this block. It preserves weights, reps, dates, partial flags, seat positions and today’s completed sets / points. Undo is available for 3 seconds.</p><p class="hint">${state.history.length} saved sets · ${state.exercises.length} exercises<br>${html(offline)}</p><p class="hint">Rest days count local calendar midnights, not 24-hour periods. A muscle folder becomes Ready three calendar days after its most recent logged set. Exercise timestamps help you choose rotations; logging is always available. These are planning labels, not a physiological recovery measurement. Tier points are your planning score.</p><p class="hint">Export before clearing site data, changing browsers or moving devices. Phone settings can block wake lock, sound or vibration. Background / locked-screen alerts are not guaranteed.</p><p id="form-error" class="error" tabindex="-1" role="alert"></p></div>`;
     if(kind==='workout')content=head('NO RUSH. JUST GOOD SETS.','Workout clock')+`<div class="dialog-body"><div class="big-clock" id="big-clock">${duration(Math.floor(workoutMillis(state)/1000))}</div><p class="hint">Starts with your first logged set, or start it manually. Keeps elapsed time through navigation and reloads.</p><div class="button-row"><button class="primary" data-action="clock-toggle">${state.clock.ended?'Start new workout':state.clock.startedAt!==null?'Pause':state.clock.elapsed?'Resume':'Start'}</button><button data-action="end-workout" class="danger" ${state.clock.ended?'disabled':''}>End workout</button></div><p class="hint">End workout saves the final duration, stops all rest timers and clears the active tray. Your logs, cooldowns and fatigue stay intact. Reset fatigue separately in Settings.</p></div>`;
     if(kind==='rest')content=head('EXERCISE TIMER',e.name,true)+`<form id="rest-form" class="dialog-body" data-id="${eid}"><label>Rest in seconds<input type="number" min="15" max="900" step="1" name="seconds" value="${state.rest[eid]||(e.rest[0]+e.rest[1])/2}" required></label><p class="hint">Prescribed range: ${duration(e.rest[0])}–${duration(e.rest[1])}. Applies to this exercise’s next checked set.</p><button class="primary full">Save rest duration</button><p id="form-error" class="error" tabindex="-1" role="alert"></p></form>`;
-    if(kind==='edit-exercise')content=head('YOUR EXERCISE','Edit exercise')+`<form id="exercise-edit-form" class="dialog-body" data-id="${eid}"><label>Name<input name="name" maxlength="100" required value="${html(e.name)}"></label><label>Category<select name="group">${state.groups.filter(g=>!state.hiddenGroups.includes(g[0])).map(g=>`<option value="${g[0]}" ${e.group===g[0]?'selected':''}>${html(g[1])}</option>`).join('')}</select></label><button class="primary full">Save changes</button><button type="button" class="danger full" data-action="archive-exercise" data-id="${eid}">Delete exercise</button><p class="hint">Deleting removes this exercise and its alternates from active lists. History remains in your backup. Undo is available for 3 seconds.</p><p id="form-error" class="error" role="alert"></p></form>`;
+    if(kind==='edit-exercise')content=head('YOUR EXERCISE','Edit exercise')+`<form id="exercise-edit-form" class="dialog-body" data-id="${eid}"><label>Name<input name="name" maxlength="100" required value="${html(e.name)}"></label><label>Target RIR<input name="rir" maxlength="5" value="${html(e.rir||'')}" placeholder="e.g. 1–2"></label><label>Category<select name="group">${state.groups.filter(g=>!state.hiddenGroups.includes(g[0])).map(g=>`<option value="${g[0]}" ${e.group===g[0]?'selected':''}>${html(g[1])}</option>`).join('')}</select></label><button class="primary full">Save changes</button><button type="button" class="danger full" data-action="archive-exercise" data-id="${eid}">Delete exercise</button><p class="hint">Deleting removes this exercise and its alternates from active lists. History remains in your backup. Undo is available for 3 seconds.</p><p id="form-error" class="error" role="alert"></p></form>`;
     if(kind==='edit-group'){
       const gid=ui.modal.groupId,g=state.groups.find(g=>g[0]===gid);
       content=head('YOUR CATEGORY','Edit category')+`<form id="group-edit-form" class="dialog-body" data-group="${gid}"><label>Name<input name="name" maxlength="60" required value="${html(g[1])}"></label><button class="primary full">Save name</button><button type="button" data-action="add-exercise" data-id="${gid}">＋ Add an exercise</button><label>Move or restore an existing exercise here<select name="existing"><option value="">Choose exercise…</option>${state.exercises.filter(e=>e.group!==gid||e.archived).map(e=>`<option value="${e.id}">${html(e.name)}${e.archived?' (deleted)':''}</option>`).join('')}</select></label><button type="button" data-action="move-existing" data-id="${gid}">Add selected exercise</button><button type="button" class="danger full" data-action="archive-group" data-id="${gid}">Delete category and its exercises</button><p class="hint">Saved history stays in your backup. Undo is available for 3 seconds.</p><p id="form-error" class="error" role="alert"></p></form>`;
     }
-    if(kind==='new-exercise')content=head('YOUR MOVEMENT','Add exercise')+`<form id="exercise-new-form" class="dialog-body" data-group="${ui.modal.groupId}"><label>Name<input name="name" maxlength="100" required></label><div class="form-grid"><label>Tier<select name="tier"><option value="1">Tier 1 · 3 pts</option><option value="2" selected>Tier 2 · 2 pts</option><option value="3">Tier 3 · 1 pt</option></select></label><label>Sets<input name="sets" type="number" min="1" max="10" value="3" required></label></div><label>Rep range<input name="reps" maxlength="30" value="8–12" required></label><label>Rest (seconds)<input name="rest" type="number" min="15" max="900" value="120" required></label><button class="primary full">Add exercise</button><p id="form-error" class="error" role="alert"></p></form>`;
+    if(kind==='new-exercise')content=head('YOUR MOVEMENT','Add exercise')+`<form id="exercise-new-form" class="dialog-body" data-group="${ui.modal.groupId}"><label>Name<input name="name" maxlength="100" required></label><div class="form-grid"><label>Tier<select name="tier"><option value="1">Tier 1 · 3 pts</option><option value="2" selected>Tier 2 · 2 pts</option><option value="3">Tier 3 · 1 pt</option></select></label><label>Sets<input name="sets" type="number" min="1" max="10" value="3" required></label></div><label>Rep range<input name="reps" maxlength="30" value="8–12" required></label><label>Target RIR<input name="rir" maxlength="5" placeholder="e.g. 1–2"></label><label>Rest (seconds)<input name="rest" type="number" min="15" max="900" value="120" required></label><button class="primary full">Add exercise</button><p id="form-error" class="error" role="alert"></p></form>`;
     if(kind==='tools')content=toolsPanel(e);
     if(kind==='graph')content=graphPanel(e);
     $('#dialog-content').innerHTML=content;
@@ -561,11 +593,11 @@ function boot() {
   });
   document.addEventListener('submit',event=>{
     const form=event.target;if(!['alternate-form','folder-form','rest-form','exercise-edit-form','group-edit-form','exercise-new-form'].includes(form.id))return;event.preventDefault();const data=new FormData(form);
-    if(form.id==='exercise-edit-form'){if(mutate(s=>{renameExercise(s,form.dataset.id,String(data.get('name')));if(exerciseById(s,form.dataset.id).group!==data.get('group'))moveExercise(s,form.dataset.id,String(data.get('group')));},{render:false})){closeModal();renderAll();}return;}
+    if(form.id==='exercise-edit-form'){if(mutate(s=>{renameExercise(s,form.dataset.id,String(data.get('name')));setRir(s,form.dataset.id,String(data.get('rir')).trim());if(exerciseById(s,form.dataset.id).group!==data.get('group'))moveExercise(s,form.dataset.id,String(data.get('group')));},{render:false})){closeModal();renderAll();}return;}
     if(form.id==='group-edit-form'){if(mutate(s=>renameGroup(s,form.dataset.group,String(data.get('name'))),{render:false})){closeModal();renderAll();}return;}
-    if(form.id==='exercise-new-form'){if(mutate(s=>createExercise(s,form.dataset.group,String(data.get('name')),{tier:Number(data.get('tier')),sets:Number(data.get('sets')),reps:String(data.get('reps')),rest:Number(data.get('rest'))}),{render:false})){ui.group=form.dataset.group;closeModal();renderAll();}return;}
+    if(form.id==='exercise-new-form'){if(mutate(s=>{const created=createExercise(s,form.dataset.group,String(data.get('name')),{tier:Number(data.get('tier')),sets:Number(data.get('sets')),reps:String(data.get('reps')),rest:Number(data.get('rest'))});setRir(s,created.id,String(data.get('rir')).trim());},{render:false})){ui.group=form.dataset.group;closeModal();renderAll();}return;}
     if(form.id==='alternate-form'){let created;const originFolder=ui.page==='stations'?ui.folder:null;
-      if(mutate(s=>{created=addAlternate(s,form.dataset.parent,String(data.get('name')),{tier:Number(data.get('tier')),sets:Number(data.get('sets')),reps:String(data.get('reps')).trim()});if(originFolder){const f=s.folders.find(f=>f.id===originFolder);if(f&&!f.exerciseIds.includes(created.id))f.exerciseIds.push(created.id);}},{render:false})){renderTop();renderMain();openExercise(created.id);toast('Alternate added with independent history.');}
+      if(mutate(s=>{created=addAlternate(s,form.dataset.parent,String(data.get('name')),{tier:Number(data.get('tier')),sets:Number(data.get('sets')),reps:String(data.get('reps')).trim()});setRir(s,created.id,String(data.get('rir')).trim());if(originFolder){const f=s.folders.find(f=>f.id===originFolder);if(f&&!f.exerciseIds.includes(created.id))f.exerciseIds.push(created.id);}},{render:false})){renderTop();renderMain();openExercise(created.id);toast('Alternate added with independent history.');}
     }
     if(form.id==='folder-form'){const fid=form.dataset.folder||id();if(mutate(s=>setFolder(s,fid,String(data.get('name')),data.getAll('exercise')),{render:false})){ui.page='stations';ui.folder=fid;closeModal();renderAll();toast('Station saved. All entries stay linked.');}}
     if(form.id==='rest-form'){const seconds=Number(data.get('seconds'));if(mutate(s=>{if(!Number.isInteger(seconds)||seconds<15||seconds>900)throw Error('Choose 15–900 whole seconds.');s.rest[form.dataset.id]=seconds;},{render:false})){openExercise(form.dataset.id);toast('Rest duration saved.');}}
