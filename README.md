@@ -1,87 +1,70 @@
-# Flex Log 02 — folder readiness and editing (2.6.0)
+# Flex Log V3 — workflow, urgency and hardware controls
 
-Offline-first HTML, CSS and JavaScript PWA. All workout data stays in localStorage. No accounts, backend, analytics, external fonts or build step.
+Offline HTML/CSS/JavaScript PWA. All workout data stays in localStorage. No accounts, backend, external scripts or build step.
 
-Machine Dips now use Tier 2 / 2 points, 3 × 8–10 and 1 RIR. Reverse Curls default to 2 × 10–15 and 0 RIR. Existing reverse-curl sessions and drafts retain their original set target to avoid losing third sets; untouched future sessions use two. All saved history remains intact. The supplied final table is reproduced in `EXERCISES.md`, and the app uses its exercise order.
+## Update and deployment
 
-## Update your existing app
+Export a backup first. Replace all deployed files at the **same URL/path**, including `sw.js`, `manifest.json` and icons. Visit online, close every tab and installed-app window, then reopen to activate cache 3.0.0. Do not clear browser data. The existing storage key and ZIP folder name are retained deliberately so V2 history migrates in place.
 
-1. Export a backup from the existing app’s Settings.
-2. Replace the deployed files at the **same URL and path**, including `sw.js` and `icons/`. Do not clear browser data.
-3. Visit while online, close all app tabs and installed-app windows, then reopen. The updated service worker waits for open workouts to close.
+For a new GitHub Pages deployment, upload the contents of `flex-log-v2` to the repository root, select Settings → Pages → Deploy from branch → main / root, and open the returned HTTPS URL. Install through Chrome’s Add to Home Screen / Install app. For local preview, run `python3 -m http.server 8080` inside the folder and visit http://localhost:8080/. Do not double-click index.html.
 
-Existing V2 state migrates automatically. Exercise IDs, logs, seat memory, station links, timers and settings remain connected. Migration updates the requested exercise prescriptions and grouping once; later user renames and deletions persist. Old JM Press and combined wrist histories remain separate legacy records when present.
+## Logging workflow
 
-## Files and deployment
+Blank weight/reps fields adopt the exact previous-session ghost values when you check a set. Each field falls back independently; typed values, including zero weight, take priority. Unit conversion matches the displayed ghost. Partials are never silently copied. With no prior baseline, enter weight and reps first.
 
-- `index.html`: app shell
-- `styles.css`: mobile OLED-black layout
-- `app.js`: model, 30 active seeded exercises, UI, logging, editing and graphs
-- `sw.js`: repository-relative offline cache
-- `manifest.json`: standalone installation
-- `icons/`: required application icons
-- `tests/`: model and simulated service-worker tests
+A successfully saved set automatically pins its exercise, closes the logger and its parent folder, and returns to the captured pre-opening page Y offset. Search is cleared so folders remain collapsed. The page retains enough height to preserve that offset even near the bottom. Unchecking a set does not collapse the editor. Three-second Undo restores the previous workout state.
 
-For local use, run `python3 -m http.server 8080` inside `flex-log-v2`, then open `http://localhost:8080/`. Do not open index.html directly.
+The active tray keeps the three most recently pinned exercises. Logging a fourth rotates the oldest pin out. Every still-running timer remains in the same top tray until it expires or is stopped, so automatic pinning cannot hide a countdown. Extra cards scroll horizontally on phones. Each timer belongs to its exercise and uses an absolute deadline. Unpinning never erases history or stops rest. The top of an open exercise dialog also exposes the active exercises and their countdowns.
 
-For GitHub Pages, upload all contents of `flex-log-v2` to the repository root, then choose Settings → Pages → Deploy from a branch → main → / (root). Visit the returned HTTPS URL. Once Settings says offline app files are ready, use the browser’s Install / Add to Home Screen command. On iPhone use Safari → Share → Add to Home Screen. No dependency install is needed. This package has not been deployed to your account.
+The bottom timer bar and its +/- controls are removed. Prescribed rest defaults to the midpoint; the existing per-exercise rest setting changes future timers. End workout stops timers, clears pins and retains logs/final stopwatch duration.
 
-The complete current list with sets, reps, rest and fatigue points is in `EXERCISES.md`. Target RIR is displayed in each exercise logger and can be edited through Edit exercise. Each seed uses the exact supplied target, including exceptions to tier defaults.
+## Urgency spectrum
 
-## Lower-body matrix
+The final explicit rest-cycle matrix in EXERCISES.md is authoritative. The earlier 76-point example and generic three-day folder rule are superseded.
 
-The lower-body filter contains exactly these three master folders. Within each, exercises appear in the order below.
+Each exercise compares local calendar days since its latest set with its own restCycle:
 
-| Folder | Exercise | Tier / points | Sets × reps | Rest |
-| --- | --- | --- | --- | --- |
-| Quads | Hack Squat | 1 / 3 | 3 × 6–10 | 3–5 min |
-| Quads | Bulgarian Split Squat | 2 / 2 | 3 × 8–12 | 2–3 min |
-| Quads | Seated Leg Extensions | 2 / 2 | 3 × 10–15 | 2 min |
-| Posterior Chain | Romanian Deadlift (Barbell or Dumbbells) | 1 / 3 | 3 × 6–8 | 3–5 min |
-| Posterior Chain | 45-Degree Back Extension | 2 / 2 | 3 × 10–15 | 2 min |
-| Posterior Chain | Barbell Hip Thrust | 2 / 2 | 3 × 8–12 | 2–3 min |
-| Posterior Chain | Seated Machine Leg Curl | 2 / 2 | 3 × 8–12 | 2 min |
-| Calves & Adductors | Seated Adductor Machine | 2 / 2 | 3 × 10–15 | 2 min |
-| Calves & Adductors | Standing Machine Calf Raise | 3 / 1 | 3 × 8–12 | 90–120 sec |
+- Cool blue: less than half the cycle elapsed.
+- Muted green: at least halfway, but not due yet.
+- Amber: cycle reached, less than 1.5 cycles elapsed.
+- Coral: at least 1.5 cycles elapsed, considered overdue for planning.
 
-Machine Dips are in Chest. Front Delts & Triceps combines Machine Shoulder Press, overhead cable extension and cable pushdown. Chest and Core remain combined. Reverse curls and cable wrist curls remain separate movements. Cable wrist extensions are removed from active lists; any old history is retained.
+Never-logged and cooldown-reset exercises show amber with a “Not logged” label, rather than pretending they have an overdue history. Text labels and dates supplement color. Nothing blocks logging.
 
-## Two-tier readiness
+Parent folders use muscle tags. For each represented muscle, the least-urgent related exercise determines that muscle’s signal; the most-urgent distinct muscle determines the folder’s signal. This lets recent Preacher Curls suppress the biceps parent even if Incline Curls are overdue, while overdue adductors can light up a folder containing recently trained calves. Aggregation uses the full muscle population, not just search results, and each candidate’s own 3-/7-day cycle.
 
-Every master muscle folder becomes visually Ready after **three local calendar midnights** since the latest set logged for any active exercise in that folder. Before then, its label shows the remaining days. A folder with no logged sets in the current readiness block is Ready. Partial workouts update the date too.
+The tags deliberately account for shared loading: curls share elbow flexors; RDLs and back extensions share hamstrings, glutes and lower back; Bulgarian split squats share quads and glutes. Other muscle regions are separated. These are conservative scheduling cues, not measured recovery or injury predictions. Custom alternates inherit their parent’s tags; new standalone exercises default to their category tag. Moving an exercise between folders retains its muscle identity.
 
-Individual exercise rows show their own “Last: N days ago” timestamps; expanded entries show exact dates. They are not dimmed or locked according to individual three-/seven-day targets. Choose rotations using those dates; there is no forced A/B schedule. Previous targetCooldown fields remain in backups for compatibility, but do not control the interface or block logging.
+Parent category cards have broad slate backgrounds, bold headings and thick heat edges. Exercises use inset dark rows with thinner edges and lighter typography. Hold either header to edit; visible Edit controls remain available.
 
-Monday evening to Tuesday morning counts as one calendar day. DST does not change that count. Calendar readiness is a scheduling cue, not a physiological recovery measurement. Station folders link exercises across muscle groups and do not impose their own cooldown.
+## Dynamic fatigue goal
 
-## Press-and-hold editing
+The 30 active seed exercises yield:
 
-Hold a category header, exercise header, active exercise card or open exercise title for about half a second. Moving your finger to scroll cancels the hold. A short tap still opens/closes the item. Right-click or use F2 / Shift+F10 on a focused header for the same editor.
+- 7-day exercises: 44 points, counted once per week.
+- 3-day exercises: 11 points × 2 sessions = 22 points.
+- Total: 66 weekly points / 4 workout days = 16.5, rounded up to **Daily Goal: 17 Pts**.
 
-- **Exercise:** rename, move to another category, or delete.
-- **Category:** rename, delete, add a new exercise with tier/set/rep/rest settings, or move an existing exercise into it.
-- **Station:** rename, change linked exercises, or delete the station.
+The numerator still increases only when all planned sets of an exercise are complete. The progress bar caps visually at the goal, while the numeric score continues above it. The goal recalculates from active standalone exercises, their tier and restCycle. Archived entries and alternates are excluded from the goal so alternatives do not double-count a planned slot; completing an alternate still contributes actual fatigue points. New standalone exercises count toward the goal. Edit exercise includes a 3-/7-day cycle selector. New standalone exercises default to three days; alternates inherit their parent’s cycle.
 
-Visible Edit controls are also available on categories and inside exercise loggers.
+## Misc → Hardware Settings
 
-Deleting an exercise archives it and its alternates, removes active pins/station links and stops its timers. Deleting a master category archives its exercises. Historical sets and the work already counted today remain saved. A three-second Undo restores the previous state. Deleted exercises can be restored into an active category using its existing-exercise selector; deleted category names stay hidden. Station deletion only removes links, not the exercises themselves.
+- Audio toggle and 0–100% tone-volume slider.
+- Haptics toggle and intensity slider controlling pulse duration/pattern, not physical motor amplitude.
+- Test tone & vibration button plus AudioContext/API status.
 
-## Existing features retained
+The Web Audio context is created/unlocked during user interaction, resumed when suspended, and reused for rest alerts. Two short tones use a gain envelope to avoid sharp clicks. Vibration uses short bounded pulses; zero disables pulses. Hardware preferences persist across reloads and backups. Screen wake lock is requested during rest.
 
-- Up to three pinned superset exercises with individual × removal and independent rest timers.
-- Automatic timer starts on checked sets, midpoint rest defaults, ±30-second controls and adjustable future rest duration.
-- Workout stopwatch and End workout. Ending stops timers, clears pins and preserves logs/final elapsed duration.
-- Completion-only fatigue points. Tier 1 = 3, Tier 2 = 2, Tier 3 = 1. The 6–7 exercise label is a planning benchmark.
-- Previous-session weight/reps, copy-last/swipe, partial flags, seat memory, load buttons and plate calculator.
-- Independent custom alternates and per-exercise volume/e1RM graphs.
-- Separate Reset Daily Fatigue and Reset All Cooldowns controls with undo. Fatigue reset retains completed sets; cooldown reset starts a new readiness block without deleting historical performances.
-- JSON export/import. Import validates and replaces data, rather than merging it.
-- Best-effort audio, vibration and wake lock. Background/locked-screen alerts depend on browser and device support.
+Designed for Android Chrome usage, including the Galaxy S10, but **not physically tested on that device**. Browser APIs cannot guarantee alerts in silent/DND mode, with media volume muted, during browser suspension, or with restrictive power settings. Timers reconcile their deadlines on return. Device motor strength is controlled by Android, not navigator.vibrate().
 
-For unilateral exercises, finish both sides before checking a set. Keep a consistent load convention for dumbbells. Cable wrist curls are logged separately from reverse curls.
+API references: https://developer.mozilla.org/en-US/docs/Web/API/Navigator/vibrate and https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API/Best_practices
 
-## Validation
+## Persistence and retained features
 
-Run `npm test` with Node.js 20+. No npm dependencies are needed. **49 automated tests pass**, covering the exact lower-body matrix, midnight/DST arithmetic, folder readiness, edit persistence, history-preserving deletion/restoration, migration, fatigue, timers, graphs, backup validation and simulated offline cache lifecycle. Migration was also checked directly against the previous downloadable app’s model.
+Migration adds restCycle, muscle tags and hardware preferences without replacing logs, RIR, seat positions, custom names, folders or timers. Separate Reset Daily Fatigue and Reset All Cooldowns controls remain, both preserving history. JSON backup import/export, progression graphs, partial flags, per-exercise seat memory, custom alternates, load tools and press-and-hold editing remain available. The full current prescription table is in EXERCISES.md.
 
-Browser/phone visual and touch verification remains untested: the browser runtime could not be downloaded in this environment. Before gym use, check long-press versus scrolling, deletion/undo, adding an exercise, offline reopening and device timer alerts on your phone.
+## Verification
+
+Run `npm test` with Node.js 20+. **57 automated tests** cover seed prescriptions, cycles/goal, muscle-aware urgency, midnight/DST boundaries, zero-type fallback, unit conversion, pin/timer retention, migration, hardware bounds, and earlier history/backup features. A mocked DOM event-flow test checks logging → collapse → scroll restoration → pinning, plus Hardware Settings rendering. Migration is also tested against the actual prior 2.6 source.
+
+These are model, mocked DOM and mocked service-worker checks, **not real browser layout or Galaxy S10 hardware verification**. On the installed phone, check first-tap audio, test alerts, scroll restoration near the bottom, long-press versus scrolling, tray overflow, offline reopening and foreground/background timer behavior.
