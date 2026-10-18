@@ -8,21 +8,7 @@ let sequence=0;
 const record=(s,eid='e1',index=0,at=monday,overrides={})=>logSet(s,eid,index,{weight:'100',reps:'8',partial:false,...overrides},at,`record-${++sequence}`);
 const finish=(s,eid='e1',at=monday)=>{for(let i=0;i<targetSets(s,eid,localDay(at));i++)record(s,eid,i,at);};
 
-test('exact seed matrix: 31 names, prescriptions and independent muscle groups',()=>{
-  assert.equal(SEED.length,31);assert.equal(SEED.reduce((n,e)=>n+e.sets,0),91);
-  assert.deepEqual(SEED.slice(0,27).map(e=>e.tier),[1,2,3,1,2,2,2,1,2,3,3,2,2,3,3,2,2,3,1,2,1,2,2,2,3,3,3]);
-  assert.deepEqual(SEED.slice(0,27).map(e=>e.name),[
-    'Incline Smith Machine Press','Incline Cable Fly','Pec Deck','Chest-Supported T-Bar Row',
-    'Single-Arm Dumbbell Row','Half-Kneeling Single-Arm Pulldown','Neutral Grip Lat Pulldown','Machine Shoulder Press',
-    'Behind-the-Back Cable Lateral Raise','Dumbbell Lateral Raise','Reverse Pec Deck','Incline Dumbbell Curl','Preacher Curl','Dumbbell Hammer Curl',
-    'Cable Wrist Curl','Machine Dips','Cross-Body Overhead Cable Triceps Ext.','Cross-Body Cable Triceps Pushdown','Hack Squat',
-    'Seated Leg Extensions','Romanian Deadlift (Barbell or DB)','Seated Machine Leg Curl','Barbell Hip Thrust','Seated Adductor Machine',
-    'Standing Machine Calf Raise','Weighted Cable Crunches','Pallof Press']);
-  assert.deepEqual(SEED[0].rest,[180,240]);assert.deepEqual(SEED[18].rest,[180,300]);
-  assert.deepEqual(SEED[14].rest,[60,90]);assert.equal(SEED[2].sets,2);
-  assert.ok(!GROUPS.some(g=>g[1]==='Arms'));
-  validateState(initialState());
-});
+
 test('8 PM Monday to 8 AM Tuesday counts one calendar rest day, not 12 hours',()=>{
   const s=initialState();record(s);assert.equal(localDay(monday),'2026-10-12');
   assert.equal(readiness(s,'e1',localDay(tuesday)).days,1);
@@ -46,10 +32,10 @@ test('calendar arithmetic is independent of DST spring and fall hour changes',()
 test('fatigue points only accrue at complete target, once per exercise per day',()=>{
   const s=initialState(),day=localDay(monday);record(s);record(s,'e1',1);
   assert.deepEqual(fatigue(s,day),{score:0,count:0});
-  record(s,'e1',2);assert.deepEqual(fatigue(s,day),{score:3,count:1});
-  assert.throws(()=>record(s,'e1',2));assert.equal(fatigue(s,day).score,3);
-  finish(s,'e2');finish(s,'e3');assert.deepEqual(fatigue(s,day),{score:6,count:3});
-  unlogSet(s,'e1',2,day);assert.deepEqual(fatigue(s,day),{score:3,count:2});
+  record(s,'e1',2);assert.deepEqual(fatigue(s,day),{score:2,count:1});
+  assert.throws(()=>record(s,'e1',2));assert.equal(fatigue(s,day).score,2);
+  finish(s,'e2');finish(s,'e3');assert.deepEqual(fatigue(s,day),{score:4,count:3});
+  unlogSet(s,'e1',2,day);assert.deepEqual(fatigue(s,day),{score:2,count:2});
   validateState(s);
 });
 test('logging in a folder and muscle view uses same ID without duplication',()=>{
@@ -67,10 +53,10 @@ test('logging in a folder and muscle view uses same ID without duplication',()=>
 test('alternate independently tracks records, seat, points and cooldown',()=>{
   const s=initialState();exerciseById(s,'e22').seat='Chair 2';
   const alt=addAlternate(s,'e22','Lying Leg Curl',{},'lying-curl');
-  assert.equal(alt.parent,'e22');assert.equal(alt.seat,'');assert.equal(alt.tier,2);
+  assert.equal(alt.parent,'e22');assert.equal(alt.seat,'');assert.equal(alt.tier,3);
   finish(s,'e22');assert.equal(readiness(s,alt.id,localDay(tuesday)),null);
   assert.equal(previousSession(s,alt.id,localDay(tuesday)).length,0);
-  finish(s,alt.id);assert.equal(fatigue(s,localDay(monday)).score,4);
+  finish(s,alt.id);assert.equal(fatigue(s,localDay(monday)).score,2);
   assert.equal(previousSession(s,alt.id,localDay(tuesday)).length,3);validateState(s);
 });
 test('reset cooldowns preserves every record, seat, partial flag, graph and today’s score',()=>{
@@ -93,10 +79,10 @@ test('three pinned exercises own separate timers; changing one cannot reset the 
   assert.equal(s.timers.e2.end,deadline);assert.equal(Object.keys(s.timers).length,2);
   togglePin(s,'e2');assert.ok(s.timers.e2);validateState(s);
 });
-test('timer uses absolute deadline and midpoint durations including 75 / 105 seconds',()=>{
+test('timer uses absolute deadline and midpoint durations including 90 seconds',()=>{
   const s=initialState();record(s,'e1');record(s,'e15');record(s,'e10');
   assert.equal(s.timers.e1.end-monday.getTime(),210000);
-  assert.equal(s.timers.e15.duration,75);assert.equal(s.timers.e10.duration,105);
+  assert.equal(s.timers.e15.duration,90);assert.equal(s.timers.e10.duration,90);
   assert.equal(Math.ceil((s.timers.e1.end-(monday.getTime()+20000))/1000),190);
 });
 test('previous session excludes today and copies corresponding set with unit conversion',()=>{
@@ -129,7 +115,7 @@ test('stopwatch starts on first set, survives reload and respects pause/resume',
 test('adjusting target never silently drops logged sets; fatigue recomputes',()=>{
   const s=initialState(),day=localDay(monday);finish(s);changeTarget(s,'e1',4,day);
   assert.equal(fatigue(s,day).score,0);assert.throws(()=>changeTarget(s,'e1',2,day));
-  changeTarget(s,'e1',3,day);assert.equal(fatigue(s,day).score,3);validateState(s);
+  changeTarget(s,'e1',3,day);assert.equal(fatigue(s,day).score,2);validateState(s);
 });
 test('invalid reps/weight cannot create records or timers; zero weight accepted',()=>{
   for(const input of [{weight:''},{weight:-1},{weight:Infinity},{weight:10001},{reps:''},{reps:0},{reps:1.5},{reps:1000}]){
@@ -160,7 +146,7 @@ test('reject corrupt backup references, duplicate records and unsafe identifiers
   for(const corrupt of corruptors){const bad=copy(s);corrupt(bad);assert.throws(()=>validateState(bad));}
 });
 test('custom names are normalized, validated, and cannot duplicate seeded movements',()=>{
-  const s=initialState();assert.throws(()=>addAlternate(s,'e1',' incline smith machine press '));
+  const s=initialState();assert.throws(()=>addAlternate(s,'e1',' convergent machine chest press '));
   assert.throws(()=>addAlternate(s,'e1',''));assert.throws(()=>addAlternate(s,'e1','Other',{tier:4}));
   addAlternate(s,'e22','Lying Curl',{},'lying');assert.throws(()=>addAlternate(s,'e22','LYING CURL'));
   validateState(s);

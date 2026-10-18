@@ -4,17 +4,25 @@ Offline HTML/CSS/JavaScript PWA. All workout data stays in localStorage. No acco
 
 ## Update and deployment
 
-Export a backup first. Replace all deployed files at the **same URL/path**, including `sw.js`, `manifest.json` and icons. Visit online, close every tab and installed-app window, then reopen to activate cache 3.0.0. Do not clear browser data. The existing storage key and ZIP folder name are retained deliberately so V2 history migrates in place.
+Export a backup first. Replace all deployed files at the **same URL/path**, including `sw.js`, `manifest.json` and icons. Visit online, close every tab and installed-app window, then reopen to activate cache 3.1.2. Do not clear browser data. The existing storage key and ZIP folder name are retained deliberately so V2 history migrates in place.
 
 For a new GitHub Pages deployment, upload the contents of `flex-log-v2` to the repository root, select Settings → Pages → Deploy from branch → main / root, and open the returned HTTPS URL. Install through Chrome’s Add to Home Screen / Install app. For local preview, run `python3 -m http.server 8080` inside the folder and visit http://localhost:8080/. Do not double-click index.html.
+
+## Plate shorthand (3.1)
+
+The weight field accepts plain numbers or comma-separated blocks, each optionally containing one `x`, `X` or `*` multiplication. Examples: `45x5, 25x2` = 275; `45x2, 10` = 100; `45x2, 25` = 115. Commas always add blocks; they are not thousands separators. Include bar weight explicitly if needed. No implicit per-side doubling is applied. Decimal plates are supported, and fractional totals are retained rather than truncated.
+
+The plain-text weight control wraps and automatically grows inside its column, avoiding horizontal text scrolling. A faint live total appears beneath it. The text keyboard exposes letters and symbols; Enter dismisses it. Expressions may contain up to 200 characters, with a total from 0 to 10,000. Incomplete or invalid expressions show “Check format” and cannot be logged. The parser does not use eval or execute code.
+
+Completing a set stores only the calculated numeric weight; reopening the completed row shows that number. Existing auto-collapse and auto-pinning still apply. Progression graphs continue to use numeric records. Drafts retain shorthand until completed. Load-tool increments evaluate the draft first. Switching units evaluates valid draft expressions before conversion; fix incomplete expressions before switching.
 
 ## Logging workflow
 
 Blank weight/reps fields adopt the exact previous-session ghost values when you check a set. Each field falls back independently; typed values, including zero weight, take priority. Unit conversion matches the displayed ghost. Partials are never silently copied. With no prior baseline, enter weight and reps first.
 
-A successfully saved set automatically pins its exercise, closes the logger and its parent folder, and returns to the captured pre-opening page Y offset. Search is cleared so folders remain collapsed. The page retains enough height to preserve that offset even near the bottom. Unchecking a set does not collapse the editor. Three-second Undo restores the previous workout state.
+A successfully saved non-final set automatically pins its exercise, closes the logger and its parent folder, and returns to the captured pre-opening page Y offset. Search is cleared so folders remain collapsed. The page retains enough height to preserve that offset even near the bottom. Unchecking a set does not collapse the editor. Three-second Undo restores the previous workout state.
 
-The active tray keeps the three most recently pinned exercises. Logging a fourth rotates the oldest pin out. Every still-running timer remains in the same top tray until it expires or is stopped, so automatic pinning cannot hide a countdown. Extra cards scroll horizontally on phones. Each timer belongs to its exercise and uses an absolute deadline. Unpinning never erases history or stops rest. The top of an open exercise dialog also exposes the active exercises and their countdowns.
+The active tray keeps the three most recently pinned exercises. Logging a fourth rotates the oldest pin out. Completing the final planned set stops that exercise’s timer and removes its pin immediately. This uses the current set target (including two-set exercises and manually adjusted targets), not a hardcoded third set. Other exercise timers continue. Undo restores the preceding pin/timer state. Every still-running timer remains in the same top tray until it expires or is stopped, so automatic pinning cannot hide a countdown. Extra cards scroll horizontally on phones. Each timer belongs to its exercise and uses an absolute deadline. Unpinning never erases history or stops rest. The top of an open exercise dialog also exposes the active exercises and their countdowns.
 
 The bottom timer bar and its +/- controls are removed. Prescribed rest defaults to the midpoint; the existing per-exercise rest setting changes future timers. End workout stops timers, clears pins and retains logs/final stopwatch duration.
 
@@ -41,9 +49,9 @@ Parent category cards have broad slate backgrounds, bold headings and thick heat
 
 The 30 active seed exercises yield:
 
-- 7-day exercises: 44 points, counted once per week.
-- 3-day exercises: 11 points × 2 sessions = 22 points.
-- Total: 66 weekly points / 4 workout days = 16.5, rounded up to **Daily Goal: 17 Pts**.
+- 7-day exercises: 38 points, counted once per week.
+- 3-day exercises: 7 points × 2 sessions = 14 points.
+- Total: 52 weekly points / 4 workout days = **Daily Goal: 13 Pts**.
 
 The numerator still increases only when all planned sets of an exercise are complete. The progress bar caps visually at the goal, while the numeric score continues above it. The goal recalculates from active standalone exercises, their tier and restCycle. Archived entries and alternates are excluded from the goal so alternatives do not double-count a planned slot; completing an alternate still contributes actual fatigue points. New standalone exercises count toward the goal. Edit exercise includes a 3-/7-day cycle selector. New standalone exercises default to three days; alternates inherit their parent’s cycle.
 
@@ -65,6 +73,10 @@ Migration adds restCycle, muscle tags and hardware preferences without replacing
 
 ## Verification
 
-Run `npm test` with Node.js 20+. **57 automated tests** cover seed prescriptions, cycles/goal, muscle-aware urgency, midnight/DST boundaries, zero-type fallback, unit conversion, pin/timer retention, migration, hardware bounds, and earlier history/backup features. A mocked DOM event-flow test checks logging → collapse → scroll restoration → pinning, plus Hardware Settings rendering. Migration is also tested against the actual prior 2.6 source.
+Run `npm test` with Node.js 20+. **64 automated tests** cover seed prescriptions, cycles/goal, muscle-aware urgency, midnight/DST boundaries, zero-type fallback, unit conversion, pin/timer retention, migration, hardware bounds, and earlier history/backup features. A mocked DOM event-flow test checks logging → collapse → scroll restoration → pinning, plus Hardware Settings rendering. Migration is also tested against the actual prior 2.6 source.
 
 These are model, mocked DOM and mocked service-worker checks, **not real browser layout or Galaxy S10 hardware verification**. On the installed phone, check first-tap audio, test alerts, scroll restoration near the bottom, long-press versus scrolling, tray overflow, offline reopening and foreground/background timer behavior.
+
+## Exercise matrix revision (3.1.2)
+
+The 31 active exercises in EXERCISES.md replace the previous prescriptions. Side and rear delts share a folder; lower body retains its three folders. Replaced movements retain their old records and drafts under archived entries, so their weights are not used as baselines for new movements. Existing session targets, settings, custom exercises and timer workflow are retained. This migration runs once; later edits survive reload.

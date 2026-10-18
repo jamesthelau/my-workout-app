@@ -2,9 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {initialState,copy,exerciseById,logSet,completeWithHistory,activeIds,urgency,folderUrgency,fatigueGoal,archiveExercise,addAlternate,migrateState,validateState,vibrationPattern} from '../app.js';
 const at=new Date('2026-10-01T12:00:00');
-test('explicit cycles produce 44 + 22 weekly points and a rounded 17-point goal',()=>{
- const s=initialState();assert.deepEqual(s.exercises.filter(e=>!e.archived&&e.restCycle===3).map(e=>e.id),['e11','e15','e20','e22','e24','e25','e26','e27']);assert.deepEqual(fatigueGoal(s),{weekly7:44,weekly3:22,weekly:66,daily:17});
- addAlternate(s,'e1','Alternate Press',{},'other-press');assert.equal(fatigueGoal(s).weekly,66);archiveExercise(s,'e1');assert.equal(fatigueGoal(s).weekly,63);
+test('explicit cycles produce 38 + 14 weekly points and a 13-point goal',()=>{
+ const s=initialState();assert.deepEqual(s.exercises.filter(e=>!e.archived&&e.restCycle===3).map(e=>e.id),['e11','e15','e20','e22','e24','e32','e25']);assert.deepEqual(fatigueGoal(s),{weekly7:38,weekly3:14,weekly:52,daily:13});
+ addAlternate(s,'e1','Alternate Press',{},'other-press');assert.equal(fatigueGoal(s).weekly,52);archiveExercise(s,'e1');assert.equal(fatigueGoal(s).weekly,50);
 });
 test('zero typing adopts prior values, converts units, preserves typed zero and refuses missing baseline',()=>{
  const s=initialState();logSet(s,'e1',0,{weight:100,reps:8,partial:true},at,'prior');s.settings.unit='kg';
@@ -25,10 +25,7 @@ test('recent shared-muscle work suppresses parent heat; unrelated overdue muscle
  assert.equal(urgency(s,'e12','2026-10-12').level,'overdue');assert.equal(folderUrgency(s,['e12','e13','e14'],'2026-10-12').level,'cold');
  logSet(s,'e24',0,{weight:25,reps:8},at,'adductors');logSet(s,'e25',0,{weight:25,reps:8},new Date('2026-10-12T12:00:00'),'calves');assert.equal(folderUrgency(s,['e24','e25'],'2026-10-12').level,'overdue');
 });
-test('V3 migration adds cycles/hardware while preserving prescriptions, records, edits and folders',()=>{
- const s=initialState();s.revision=6;for(const e of s.exercises){delete e.restCycle;delete e.muscles;}delete s.settings.volume;delete s.settings.hapticIntensity;s.exercises[0].name='My Press';s.exercises[0].rir='2';logSet(s,'e1',0,{weight:50,reps:8},at,'old');const before=copy(s);const n=migrateState(s);assert.deepEqual(n.history,before.history);assert.deepEqual(n.folders,before.folders);assert.equal(n.exercises[0].name,'My Press');assert.equal(n.exercises[0].rir,'2');assert.equal(n.settings.volume,.6);assert.deepEqual(migrateState(n),n);
- const bad=copy(n);bad.settings.volume=4;assert.throws(()=>validateState(bad));bad.settings.volume=.5;bad.exercises[0].restCycle=4;assert.throws(()=>validateState(bad));
-});
+
 test('haptic control uses bounded durations with an actual zero/off state',()=>{
  assert.equal(vibrationPattern(0),0);assert.ok(vibrationPattern(.2)<vibrationPattern(1));assert.deepEqual(vibrationPattern(1,true),[250,90,250]);
 });

@@ -2,12 +2,12 @@
 export const GROUPS = [
   ['chest','Chest','upper'],
   ['mid-back','Mid-Back','upper'],['lats','Lats','upper'],['front-delts','Front Delts & Triceps','upper'],
-  ['side-delts','Side Delts','upper'],['rear-delts','Rear Delts','upper'],
-  ['biceps','Biceps / Brachialis','upper'],['forearms','Forearms','upper'],
+  ['side-delts','Side & Rear Delts','upper'],
+  ['biceps','Biceps','upper'],['forearms','Forearms','upper'],
   ['quads','Quads','lower'],['posterior-chain','Posterior Chain','lower'],
   ['calves-adductors','Calves & Adductors','lower'],['core','Core','core']
 ];
-const legacyGroups = {triceps:'front-delts',hamstrings:'posterior-chain',glutes:'posterior-chain','misc-legs':'posterior-chain','quads-glutes':'quads','hamstrings-adductors-calves':'posterior-chain','upper-chest':'chest','mid-chest':'chest',adductors:'calves-adductors',calves:'calves-adductors','core-flexion':'core','core-stability':'core'};
+const legacyGroups = {'rear-delts':'side-delts',triceps:'front-delts',hamstrings:'posterior-chain',glutes:'posterior-chain','misc-legs':'posterior-chain','quads-glutes':'quads','hamstrings-adductors-calves':'posterior-chain','upper-chest':'chest','mid-chest':'chest',adductors:'calves-adductors',calves:'calves-adductors','core-flexion':'core','core-stability':'core'};
 const seedRows = [
   ['Incline Smith Machine Press','chest',1,3,'5–8',180,240],
   ['Incline Cable Fly','chest',2,3,'8–12',120,180],
@@ -45,7 +45,635 @@ const targetCooldowns = [3,7,7,7,7,7,7,7,3,3,3,7,7,3,3,7,7,3,3,3,7,7,7,7,3,3,7,7
 const rirTargets = ['1–2','0–1','0','1–2','1','1','1','1–2','0–1','0','0','1','0','0','0','1','0–1','0','1–2','0','1–2','0–1','1','0–1','0','0–1','1','1','0','','1'];
 const shortCycles = new Set(['e11','e15','e20','e22','e24','e25','e26','e27']);
 const muscleTags = {e1:['chest'],e2:['chest'],e3:['chest'],e16:['chest'],e4:['mid-back'],e5:['lats'],e6:['lats'],e7:['lats'],e8:['front-delts'],e9:['side-delts'],e10:['side-delts'],e11:['rear-delts'],e12:['elbow-flexors'],e13:['elbow-flexors'],e14:['elbow-flexors'],e29:['elbow-flexors'],e15:['wrist-flexors'],e30:['wrist-extensors'],e17:['triceps'],e18:['triceps'],e19:['quads'],e20:['quads'],e28:['quads','glutes'],e21:['hamstrings','glutes','lower-back'],e22:['hamstrings'],e23:['glutes'],e31:['hamstrings','glutes','lower-back'],e24:['adductors'],e25:['calves'],e26:['core'],e27:['core']};
-export const SEED = seedRows.map(([name,group,tier,sets,reps,min,max],i)=>({id:`e${i+1}`,name,group,tier,sets,reps,rir:rirTargets[i],restCycle:shortCycles.has(`e${i+1}`)?3:7,muscles:muscleTags[`e${i+1}`],rest:[min,max],targetCooldown:targetCooldowns[i] || 7,parent:null,seat:'',...(i===29?{archived:true}:{})}));
+const previousSeed = seedRows.map(([name,group,tier,sets,reps,min,max],i)=>({id:`e${i+1}`,name,group,tier,sets,reps,rir:rirTargets[i],restCycle:shortCycles.has(`e${i+1}`)?3:7,muscles:muscleTags[`e${i+1}`],rest:[min,max],targetCooldown:targetCooldowns[i] || 7,parent:null,seat:'',...(i===29?{archived:true}:{})}));
+const currentRows = [
+  {
+    "id": "e1",
+    "name": "Convergent Machine Chest Press",
+    "group": "chest",
+    "tier": 2,
+    "sets": 3,
+    "reps": "6–10",
+    "rir": "1–2",
+    "rest": [
+      180,
+      240
+    ],
+    "restCycle": 7,
+    "targetCooldown": 7,
+    "muscles": [
+      "chest"
+    ],
+    "parent": null,
+    "seat": ""
+  },
+  {
+    "id": "e16",
+    "name": "Incline Machine or DB Press",
+    "group": "chest",
+    "tier": 2,
+    "sets": 3,
+    "reps": "8–12",
+    "rir": "1",
+    "rest": [
+      180,
+      180
+    ],
+    "restCycle": 7,
+    "targetCooldown": 7,
+    "muscles": [
+      "chest"
+    ],
+    "parent": null,
+    "seat": ""
+  },
+  {
+    "id": "e2",
+    "name": "Incline Cable Fly",
+    "group": "chest",
+    "tier": 3,
+    "sets": 3,
+    "reps": "10–12",
+    "rir": "0–1",
+    "rest": [
+      120,
+      120
+    ],
+    "restCycle": 7,
+    "targetCooldown": 7,
+    "muscles": [
+      "chest"
+    ],
+    "parent": null,
+    "seat": ""
+  },
+  {
+    "id": "e3",
+    "name": "Pec Deck",
+    "group": "chest",
+    "tier": 3,
+    "sets": 3,
+    "reps": "12–15",
+    "rir": "0",
+    "rest": [
+      120,
+      120
+    ],
+    "restCycle": 7,
+    "targetCooldown": 7,
+    "muscles": [
+      "chest"
+    ],
+    "parent": null,
+    "seat": ""
+  },
+  {
+    "id": "e4",
+    "name": "Chest-Supported T-Bar Row",
+    "group": "mid-back",
+    "tier": 2,
+    "sets": 3,
+    "reps": "6–10",
+    "rir": "1–2",
+    "rest": [
+      180,
+      180
+    ],
+    "restCycle": 7,
+    "targetCooldown": 7,
+    "muscles": [
+      "mid-back"
+    ],
+    "parent": null,
+    "seat": ""
+  },
+  {
+    "id": "e5",
+    "name": "Seated Cable Row",
+    "group": "mid-back",
+    "tier": 2,
+    "sets": 3,
+    "reps": "8–12",
+    "rir": "1",
+    "rest": [
+      120,
+      180
+    ],
+    "restCycle": 7,
+    "targetCooldown": 7,
+    "muscles": [
+      "mid-back"
+    ],
+    "parent": null,
+    "seat": ""
+  },
+  {
+    "id": "e6",
+    "name": "Half-Kneeling Cross-Body Pulldown",
+    "group": "lats",
+    "tier": 2,
+    "sets": 3,
+    "reps": "8–12",
+    "rir": "1",
+    "rest": [
+      120,
+      120
+    ],
+    "restCycle": 7,
+    "targetCooldown": 7,
+    "muscles": [
+      "lats"
+    ],
+    "parent": null,
+    "seat": ""
+  },
+  {
+    "id": "e7",
+    "name": "Neutral Grip Lat Pulldown",
+    "group": "lats",
+    "tier": 2,
+    "sets": 3,
+    "reps": "8–12",
+    "rir": "1",
+    "rest": [
+      120,
+      120
+    ],
+    "restCycle": 7,
+    "targetCooldown": 7,
+    "muscles": [
+      "lats"
+    ],
+    "parent": null,
+    "seat": ""
+  },
+  {
+    "id": "e8",
+    "name": "Machine Shoulder Press",
+    "group": "front-delts",
+    "tier": 2,
+    "sets": 3,
+    "reps": "6–10",
+    "rir": "1–2",
+    "rest": [
+      180,
+      180
+    ],
+    "restCycle": 7,
+    "targetCooldown": 7,
+    "muscles": [
+      "front-delts"
+    ],
+    "parent": null,
+    "seat": ""
+  },
+  {
+    "id": "e17",
+    "name": "Cross-Body Overhead Cable Ext.",
+    "group": "front-delts",
+    "tier": 3,
+    "sets": 3,
+    "reps": "10–12",
+    "rir": "0",
+    "rest": [
+      120,
+      120
+    ],
+    "restCycle": 7,
+    "targetCooldown": 7,
+    "muscles": [
+      "triceps"
+    ],
+    "parent": null,
+    "seat": ""
+  },
+  {
+    "id": "e18",
+    "name": "Cross-Body Cable Pushdown",
+    "group": "front-delts",
+    "tier": 3,
+    "sets": 3,
+    "reps": "10–15",
+    "rir": "0",
+    "rest": [
+      90,
+      90
+    ],
+    "restCycle": 7,
+    "targetCooldown": 7,
+    "muscles": [
+      "triceps"
+    ],
+    "parent": null,
+    "seat": ""
+  },
+  {
+    "id": "e9",
+    "name": "Machine Lateral Raise (Alternating)",
+    "group": "side-delts",
+    "tier": 3,
+    "sets": 3,
+    "reps": "10–15",
+    "rir": "0",
+    "rest": [
+      90,
+      90
+    ],
+    "restCycle": 7,
+    "targetCooldown": 7,
+    "muscles": [
+      "side-delts"
+    ],
+    "parent": null,
+    "seat": ""
+  },
+  {
+    "id": "e10",
+    "name": "Cross-Body Cable Lateral (Alternating)",
+    "group": "side-delts",
+    "tier": 3,
+    "sets": 3,
+    "reps": "12–15",
+    "rir": "0",
+    "rest": [
+      90,
+      90
+    ],
+    "restCycle": 7,
+    "targetCooldown": 7,
+    "muscles": [
+      "side-delts"
+    ],
+    "parent": null,
+    "seat": ""
+  },
+  {
+    "id": "e11",
+    "name": "Reverse Pec Deck",
+    "group": "side-delts",
+    "tier": 3,
+    "sets": 3,
+    "reps": "12–15",
+    "rir": "0",
+    "rest": [
+      90,
+      90
+    ],
+    "restCycle": 3,
+    "targetCooldown": 3,
+    "muscles": [
+      "rear-delts"
+    ],
+    "parent": null,
+    "seat": ""
+  },
+  {
+    "id": "e12",
+    "name": "Incline Dumbbell Curl",
+    "group": "biceps",
+    "tier": 3,
+    "sets": 3,
+    "reps": "8–12",
+    "rir": "0",
+    "rest": [
+      120,
+      120
+    ],
+    "restCycle": 7,
+    "targetCooldown": 7,
+    "muscles": [
+      "elbow-flexors"
+    ],
+    "parent": null,
+    "seat": ""
+  },
+  {
+    "id": "e13",
+    "name": "Preacher Curl",
+    "group": "biceps",
+    "tier": 3,
+    "sets": 3,
+    "reps": "10–12",
+    "rir": "0",
+    "rest": [
+      120,
+      120
+    ],
+    "restCycle": 7,
+    "targetCooldown": 7,
+    "muscles": [
+      "elbow-flexors"
+    ],
+    "parent": null,
+    "seat": ""
+  },
+  {
+    "id": "e14",
+    "name": "Dumbbell Hammer Curl",
+    "group": "biceps",
+    "tier": 3,
+    "sets": 3,
+    "reps": "10–15",
+    "rir": "0",
+    "rest": [
+      90,
+      90
+    ],
+    "restCycle": 7,
+    "targetCooldown": 7,
+    "muscles": [
+      "elbow-flexors"
+    ],
+    "parent": null,
+    "seat": ""
+  },
+  {
+    "id": "e15",
+    "name": "Cable Wrist Curl",
+    "group": "forearms",
+    "tier": 3,
+    "sets": 3,
+    "reps": "12–15",
+    "rir": "0",
+    "rest": [
+      90,
+      90
+    ],
+    "restCycle": 3,
+    "targetCooldown": 3,
+    "muscles": [
+      "wrist-flexors"
+    ],
+    "parent": null,
+    "seat": ""
+  },
+  {
+    "id": "e29",
+    "name": "Reverse Curl",
+    "group": "forearms",
+    "tier": 3,
+    "sets": 2,
+    "reps": "10–15",
+    "rir": "0",
+    "rest": [
+      90,
+      90
+    ],
+    "restCycle": 7,
+    "targetCooldown": 7,
+    "muscles": [
+      "elbow-flexors"
+    ],
+    "parent": null,
+    "seat": ""
+  },
+  {
+    "id": "e19",
+    "name": "Hack Squat",
+    "group": "quads",
+    "tier": 1,
+    "sets": 3,
+    "reps": "6–10",
+    "rir": "1–2",
+    "rest": [
+      240,
+      300
+    ],
+    "restCycle": 7,
+    "targetCooldown": 7,
+    "muscles": [
+      "quads"
+    ],
+    "parent": null,
+    "seat": ""
+  },
+  {
+    "id": "e28",
+    "name": "Bulgarian Split Squat",
+    "group": "quads",
+    "tier": 2,
+    "sets": 3,
+    "reps": "8–12",
+    "rir": "1",
+    "rest": [
+      180,
+      180
+    ],
+    "restCycle": 7,
+    "targetCooldown": 7,
+    "muscles": [
+      "quads",
+      "glutes"
+    ],
+    "parent": null,
+    "seat": ""
+  },
+  {
+    "id": "e20",
+    "name": "Seated Leg Extensions",
+    "group": "quads",
+    "tier": 3,
+    "sets": 3,
+    "reps": "10–15",
+    "rir": "0",
+    "rest": [
+      120,
+      120
+    ],
+    "restCycle": 3,
+    "targetCooldown": 3,
+    "muscles": [
+      "quads"
+    ],
+    "parent": null,
+    "seat": ""
+  },
+  {
+    "id": "e21",
+    "name": "Romanian Deadlift (Bilateral)",
+    "group": "posterior-chain",
+    "tier": 1,
+    "sets": 3,
+    "reps": "6–8",
+    "rir": "1–2",
+    "rest": [
+      240,
+      300
+    ],
+    "restCycle": 7,
+    "targetCooldown": 7,
+    "muscles": [
+      "hamstrings",
+      "glutes",
+      "lower-back"
+    ],
+    "parent": null,
+    "seat": ""
+  },
+  {
+    "id": "e31",
+    "name": "45-Degree Back Ext. (Bilateral)",
+    "group": "posterior-chain",
+    "tier": 2,
+    "sets": 3,
+    "reps": "10–15",
+    "rir": "1",
+    "rest": [
+      120,
+      120
+    ],
+    "restCycle": 7,
+    "targetCooldown": 7,
+    "muscles": [
+      "hamstrings",
+      "glutes",
+      "lower-back"
+    ],
+    "parent": null,
+    "seat": ""
+  },
+  {
+    "id": "e23",
+    "name": "Barbell Hip Thrust",
+    "group": "posterior-chain",
+    "tier": 2,
+    "sets": 3,
+    "reps": "8–12",
+    "rir": "1",
+    "rest": [
+      180,
+      180
+    ],
+    "restCycle": 7,
+    "targetCooldown": 7,
+    "muscles": [
+      "glutes"
+    ],
+    "parent": null,
+    "seat": ""
+  },
+  {
+    "id": "e22",
+    "name": "Seated Machine Leg Curl",
+    "group": "posterior-chain",
+    "tier": 3,
+    "sets": 3,
+    "reps": "8–12",
+    "rir": "0",
+    "rest": [
+      120,
+      120
+    ],
+    "restCycle": 3,
+    "targetCooldown": 3,
+    "muscles": [
+      "hamstrings"
+    ],
+    "parent": null,
+    "seat": ""
+  },
+  {
+    "id": "e24",
+    "name": "Seated Adductor Machine",
+    "group": "calves-adductors",
+    "tier": 3,
+    "sets": 3,
+    "reps": "10–15",
+    "rir": "0",
+    "rest": [
+      120,
+      120
+    ],
+    "restCycle": 3,
+    "targetCooldown": 3,
+    "muscles": [
+      "adductors"
+    ],
+    "parent": null,
+    "seat": ""
+  },
+  {
+    "id": "e32",
+    "name": "Seated Abductor Machine",
+    "group": "calves-adductors",
+    "tier": 3,
+    "sets": 3,
+    "reps": "10–15",
+    "rir": "0",
+    "rest": [
+      120,
+      120
+    ],
+    "restCycle": 3,
+    "targetCooldown": 3,
+    "muscles": [
+      "hip-abductors"
+    ],
+    "parent": null,
+    "seat": ""
+  },
+  {
+    "id": "e25",
+    "name": "Leg Press Calf Raise",
+    "group": "calves-adductors",
+    "tier": 3,
+    "sets": 3,
+    "reps": "10–15",
+    "rir": "0",
+    "rest": [
+      90,
+      90
+    ],
+    "restCycle": 3,
+    "targetCooldown": 3,
+    "muscles": [
+      "calves"
+    ],
+    "parent": null,
+    "seat": ""
+  },
+  {
+    "id": "e26",
+    "name": "Weighted Cable Crunches",
+    "group": "core",
+    "tier": 3,
+    "sets": 3,
+    "reps": "10–15",
+    "rir": "0",
+    "rest": [
+      90,
+      90
+    ],
+    "restCycle": 7,
+    "targetCooldown": 7,
+    "muscles": [
+      "core"
+    ],
+    "parent": null,
+    "seat": ""
+  },
+  {
+    "id": "e27",
+    "name": "Hanging / Captain's Chair Leg Raise",
+    "group": "core",
+    "tier": 3,
+    "sets": 3,
+    "reps": "10–15",
+    "rir": "1",
+    "rest": [
+      90,
+      90
+    ],
+    "restCycle": 7,
+    "targetCooldown": 7,
+    "muscles": [
+      "core"
+    ],
+    "parent": null,
+    "seat": ""
+  }
+];
+export const SEED = [...currentRows,previousSeed.find(e=>e.id==='e30')];
 export const copy = value => structuredClone(value);
 export const id = () => crypto.randomUUID();
 export const nameKey = name => name.trim().normalize('NFKC').toLowerCase();
@@ -59,8 +687,8 @@ export function ordinal(day) {
 }
 export const daysBetween = (earlier,later) => Math.max(0,ordinal(later)-ordinal(earlier));
 export function initialState() {
-  return {version:2,revision:7,groups:copy(GROUPS),hiddenGroups:[],exercises:copy(SEED),history:[],drafts:{},plans:{},epoch:0,fatigueResets:{},
-    folders:[{id:'cables',name:'Cable Station',exerciseIds:['e2','e6','e9','e15','e17','e18','e26','e27']}],
+  return {version:2,revision:8,groups:copy(GROUPS),hiddenGroups:[],exercises:copy(SEED),history:[],drafts:{},plans:{},epoch:0,fatigueResets:{},
+    folders:[{id:'cables',name:'Cable Station',exerciseIds:['e2','e6','e10','e15','e17','e18','e26','e5']}],
     pinned:[],timers:{},clock:{startedAt:null,elapsed:0,ended:false},
     settings:{unit:'lbs',sound:true,haptics:true,volume:0.6,hapticIntensity:0.5},rest:{}};
 }
@@ -90,7 +718,8 @@ export function readinessStatus(s,exerciseId,day=localDay()) {
 export function migrateState(input) {
   // Validate legacy data first; preserve exercise IDs and every historical record.
   const s=copy(validateState(input,{allowMissingCooldown:true,legacy:true}));
-  if(s.revision>=7)return validateState(s);
+  if(s.revision>=8)return validateState(s);
+  if(s.revision===7)return updateExerciseList(s);
   if(s.revision===6)return updateV3(s);
   // Keep existing reverse-curl sessions/drafts at their original planned set count.
   for(const day of new Set([...s.history.filter(r=>r.exerciseId==='e29').map(r=>r.day),...Object.keys(s.drafts).filter(k=>k.split('|')[1]==='e29').map(k=>k.split('|')[0])])){
@@ -117,9 +746,9 @@ export function migrateState(input) {
     }
     old.seat='';
   }
-  s.groups=copy(GROUPS);s.hiddenGroups=[];
+  s.groups=[...copy(GROUPS),['rear-delts','Rear Delts','upper']];s.hiddenGroups=[];
   for(const exercise of s.exercises)exercise.group=legacyGroups[exercise.group]||exercise.group;
-  for(const seed of SEED){
+  for(const seed of previousSeed){
     const existing=exerciseById(s,seed.id);
     if(existing){existing.targetCooldown=seed.targetCooldown;existing.group=seed.group;existing.name=seed.name;existing.tier=seed.tier;existing.rest=copy(seed.rest);existing.reps=seed.reps;existing.sets=seed.sets;}
     else s.exercises.push(copy(seed));
@@ -141,7 +770,7 @@ function updateMachineExercises(s) {
   return updatePrescriptions(s);
 }
 function updatePrescriptions(s) {
-  for(const seed of SEED){
+  for(const seed of previousSeed){
     const e=exerciseById(s,seed.id);e.rir=seed.rir;
     if(seed.id==='e16'){e.tier=2;e.reps='8–10';}
     if(seed.id==='e29')e.sets=2;
@@ -152,9 +781,37 @@ function updatePrescriptions(s) {
   return updateV3(s);
 }
 function updateV3(s){
-  for(const e of s.exercises){const seed=SEED.find(x=>x.id===e.id);e.restCycle=seed?.restCycle||exerciseById(s,e.parent)?.restCycle||3;e.muscles=copy(seed?.muscles||exerciseById(s,e.parent)?.muscles||[e.group]);}
+  for(const e of s.exercises){const seed=previousSeed.find(x=>x.id===e.id);e.restCycle=seed?.restCycle||exerciseById(s,e.parent)?.restCycle||3;e.muscles=copy(seed?.muscles||exerciseById(s,e.parent)?.muscles||[e.group]);}
   s.settings.volume ??= 0.6;s.settings.hapticIntensity ??= 0.5;
-  s.revision=7;return validateState(s);
+  s.revision=7;return updateExerciseList(s);
+}
+function updateExerciseList(s){
+  // Distinct replacements get distinct archived history, drafts and baselines.
+  const replaced=new Set(['e1','e16','e5','e6','e9','e10','e25','e27']);
+  for(const seed of currentRows){
+    const e=exerciseById(s,seed.id);
+    if(!e){s.exercises.push(copy(seed));continue;}
+    if(replaced.has(e.id)&&e.name!==seed.name){
+      const oldId=`v7-${e.id}`;
+      if(!exerciseById(s,oldId))s.exercises.push({...copy(e),id:oldId,archived:true,parent:null});
+      for(const r of s.history)if(r.exerciseId===e.id)r.exerciseId=oldId;
+      for(const field of ['plans','drafts'])for(const key of Object.keys(s[field])){
+        const parts=key.split('|');if(parts[1]!==e.id)continue;
+        parts[1]=oldId;s[field][parts.join('|')]=s[field][key];delete s[field][key];
+      }
+      for(const ids of Object.values(s.fatigueResets))for(let i=0;i<ids.length;i++)if(ids[i]===e.id)ids[i]=oldId;
+      for(const alt of s.exercises)if(alt.parent===e.id)alt.parent=oldId;
+      delete s.timers[e.id];delete s.rest[e.id];s.pinned=s.pinned.filter(id=>id!==e.id);e.seat='';
+    }else if(e.sets!==seed.sets){
+      for(const day of new Set([...s.history.filter(r=>r.exerciseId===e.id).map(r=>r.day),...Object.keys(s.drafts).filter(k=>k.split('|')[1]===e.id).map(k=>k.split('|')[0])]))s.plans[dayKey(day,e.id)] ||= e.sets;
+    }
+    const seat=e.seat;Object.assign(e,copy(seed),{seat});
+  }
+  for(const e of s.exercises)if(e.group==='rear-delts')e.group='side-delts';
+  s.groups=s.groups.filter(g=>g[0]!=='rear-delts');
+  for(const group of GROUPS){const g=s.groups.find(g=>g[0]===group[0]);if(g)g[1]=group[1];else s.groups.push(copy(group));}
+  s.hiddenGroups=s.hiddenGroups.filter(g=>!GROUPS.some(x=>x[0]===g)&&g!=='rear-delts');
+  s.revision=8;return validateState(s);
 }
 export function fatigueGoal(s){
   const active=s.exercises.filter(e=>!e.archived&&!e.parent&&!s.hiddenGroups.includes(e.group));
@@ -183,7 +840,8 @@ export function completeWithHistory(s,eid,index,input,now=new Date(),recordId=id
     values[field]=field==='weight'?inUnit(prior,s.settings.unit):prior.reps;
   }
   const record=logSet(s,eid,index,values,now,recordId);
-  s.pinned=s.pinned.filter(id=>id!==eid);s.pinned.push(eid);s.pinned=s.pinned.slice(-3);
+  s.pinned=s.pinned.filter(id=>id!==eid);
+  if(!completion(s,eid,localDay(now)).complete){s.pinned.push(eid);s.pinned=s.pinned.slice(-3);}
   return record;
 }
 export function vibrationPattern(intensity,alarm=false){
@@ -217,18 +875,39 @@ export function copyPrevious(s,exerciseId,index,day=localDay()) {
   if(!previous)throw Error('No earlier session to copy yet.');
   s.drafts[draftKey(day,exerciseId,index)]={weight:String(inUnit(previous,s.settings.unit)),reps:String(previous.reps),partial:false};
 }
+export function parseWeight(value){
+  if(typeof value==='number'){
+    if(Number.isFinite(value)&&value>=0&&value<=10000)return value;
+    throw Error('Total weight must be from 0 to 10,000.');
+  }
+  if(typeof value!=='string'||!value.trim()||value.length>200)throw Error('Enter a weight or plate shorthand, e.g. 45x2, 25.');
+  const number='(?:\\d+(?:\\.\\d+)?|\\.\\d+)';
+  const segment=new RegExp(`^\\s*(${number})\\s*(?:[xX*]\\s*(${number})\\s*)?$`);
+  let total=0;
+  for(const block of value.split(',')){
+    const match=block.match(segment);
+    if(!match)throw Error('Use numbers separated by commas, with x or * for multiplication.');
+    const amount=Number(match[1])*(match[2]===undefined?1:Number(match[2]));
+    if(!Number.isFinite(amount))throw Error('Total weight must be from 0 to 10,000.');
+    total+=amount;
+  }
+  if(!Number.isFinite(total)||total>10000)throw Error('Total weight must be from 0 to 10,000.');
+  return Math.round(total*1e8)/1e8;
+}
 export function logSet(s,exerciseId,index,input,now=new Date(),recordId=id()) {
   const exercise=exerciseById(s,exerciseId),day=localDay(now),target=targetSets(s,exerciseId,day);
   if(!exercise||!Number.isInteger(index)||index<0||index>=target)throw Error('This set is outside the daily target.');
   if(dailyRecords(s,exerciseId,day).some(r=>r.index===index))throw Error('This set is already logged.');
   const {weight,reps,partial=false}=input;
-  if(String(weight).trim()===''||!Number.isFinite(Number(weight))||Number(weight)<0||Number(weight)>10000)throw Error('Enter a weight from 0 to 10,000. Zero means unweighted.');
+  const totalWeight=parseWeight(weight);
   if(String(reps).trim()===''||!Number.isInteger(Number(reps))||Number(reps)<1||Number(reps)>999)throw Error('Enter whole-number reps from 1 to 999.');
-  const record={id:recordId,exerciseId,index,day,at:now.toISOString(),weight:Number(weight),reps:Number(reps),unit:s.settings.unit,partial:!!partial,epoch:s.epoch};
+  const record={id:recordId,exerciseId,index,day,at:now.toISOString(),weight:totalWeight,reps:Number(reps),unit:s.settings.unit,partial:!!partial,epoch:s.epoch};
   s.history.push(record);delete s.drafts[draftKey(day,exerciseId,index)];
   s.plans[dayKey(day,exerciseId)]=target;
   const seconds=s.rest[exerciseId] || (exercise.rest[0]+exercise.rest[1])/2;
-  s.timers[exerciseId]={end:now.getTime()+seconds*1000,duration:seconds,recordId};
+  if(completion(s,exerciseId,day).complete){
+    delete s.timers[exerciseId];s.pinned=s.pinned.filter(eid=>eid!==exerciseId);
+  }else s.timers[exerciseId]={end:now.getTime()+seconds*1000,duration:seconds,recordId};
   if(s.clock.ended||s.clock.startedAt===null&&s.clock.elapsed===0)startWorkout(s,now.getTime());
   return record;
 }
@@ -276,7 +955,8 @@ export function resetDailyFatigue(s,day=localDay()) {
 }
 export function changeUnits(s,unit) {
   if(unit===s.settings.unit)return;
-  for(const draft of Object.values(s.drafts))if(draft.weight!==''&&Number.isFinite(Number(draft.weight)))draft.weight=String(inUnit({weight:Number(draft.weight),unit:s.settings.unit},unit));
+  const conversions=Object.values(s.drafts).filter(d=>d.weight.trim()!=='').map(d=>[d,String(inUnit({weight:parseWeight(d.weight),unit:s.settings.unit},unit))]);
+  for(const [draft,weight] of conversions)draft.weight=weight;
   s.settings.unit=unit;
 }
 export function workoutMillis(s,now=Date.now()) {return s.clock.elapsed+(s.clock.startedAt===null?0:Math.max(0,now-s.clock.startedAt));}
@@ -320,7 +1000,7 @@ export function validateState(s,{allowMissingCooldown=false,legacy=false}={}) {
     if(e.archived!==undefined&&typeof e.archived!=='boolean')fail();
     exercises.set(e.id,e);
   }
-  if((legacy?SEED.slice(0,27):SEED).some(e=>!exercises.has(e.id)))fail();
+  if((legacy?previousSeed.slice(0,27):s.revision>=8?SEED:previousSeed).some(e=>!exercises.has(e.id)))fail();
   if(!(legacy&&s.fatigueResets===undefined)){
     if(!obj(s.fatigueResets))fail();
     for(const [day,excluded] of Object.entries(s.fatigueResets))
@@ -338,7 +1018,7 @@ export function validateState(s,{allowMissingCooldown=false,legacy=false}={}) {
   }
   for(const [key,d] of Object.entries(s.drafts)){
     const [day,eid,index,...extra]=key.split('|');
-    if(extra.length||!validDay(day)||!exercises.has(eid)||!/^\d$/.test(index)||Number(index)>=targetSets(s,eid,day)||cells.has(key)||!obj(d)||typeof d.weight!=='string'||d.weight.length>40||typeof d.reps!=='string'||d.reps.length>40||typeof d.partial!=='boolean')fail();
+    if(extra.length||!validDay(day)||!exercises.has(eid)||!/^\d$/.test(index)||Number(index)>=targetSets(s,eid,day)||cells.has(key)||!obj(d)||typeof d.weight!=='string'||d.weight.length>200||typeof d.reps!=='string'||d.reps.length>40||typeof d.partial!=='boolean')fail();
   }
   const folderIds=new Set();
   for(const f of s.folders){if(!obj(f)||!safeId(f.id)||folderIds.has(f.id)||!string(f.name,60)||!Array.isArray(f.exerciseIds)||new Set(f.exerciseIds).size!==f.exerciseIds.length||f.exerciseIds.some(eid=>!exercises.has(eid)))fail();folderIds.add(f.id);}
@@ -456,7 +1136,7 @@ function boot() {
     const visible=filtered(state.exercises);
     if(ui.page==='muscles'){
       $('#content').innerHTML=state.groups.map(([gid,name])=>{
-        const order=['e1','e16','e2','e3','e19','e28','e20','e21','e23','e31','e22','e24','e25'];
+        const order=currentRows.map(e=>e.id);
         const rank=e=>{const i=order.indexOf(e.parent||e.id);return i<0?100+state.exercises.findIndex(x=>x.id===(e.parent||e.id)):i;};
         const list=visible.filter(e=>e.group===gid).sort((a,b)=>rank(a)-rank(b)||Number(!!a.parent)-Number(!!b.parent));
         if(state.hiddenGroups.includes(gid)||(!list.length&&(ui.search||ui.filter!=='all'&&state.groups.find(g=>g[0]===gid)[2]!==ui.filter)))return '';
@@ -471,7 +1151,17 @@ function boot() {
         return `<details class="muscle station heat-${folderUrgency(state,f.exerciseIds,today).level}" data-folder="${f.id}" ${ui.folder===f.id||ui.search?'open':''}><summary><span class="folder-icon" aria-hidden="true">▱</span><span class="group-name">${html(f.name)}<small>${f.exerciseIds.length} linked exercises</small></span><button class="text-button" data-action="edit-folder" data-id="${f.id}" aria-label="Edit ${html(f.name)}">Edit</button><span class="chevron" aria-hidden="true">⌄</span></summary><div class="exercise-list">${list.length?list.map(exerciseRow).join(''):'<p class="empty">No matching exercises here. Use Edit to add some.</p>'}</div></details>`;
       }).join('');
     }
+    refreshWeightFields();
   }
+  function updateWeightField(el){
+    el.style.height='auto';el.style.height=`${Math.max(50,el.scrollHeight+2)}px`;
+    const preview=el.parentElement.querySelector('.weight-preview');if(!preview)return;
+    if(!el.value.trim()||el.disabled){preview.textContent='';el.removeAttribute('aria-invalid');return;}
+    try{const total=parseWeight(el.value);preview.textContent=`Total: ${total} ${state.settings.unit}`;preview.classList.remove('invalid');el.removeAttribute('aria-invalid');}
+    catch{preview.textContent='Check format';preview.classList.add('invalid');el.setAttribute('aria-invalid','true');}
+  }
+  function refreshWeightFields(){document.querySelectorAll('textarea[data-field="weight"]').forEach(updateWeightField);}
+  window.addEventListener('resize',refreshWeightFields);
   function logger(e){
     const r=readiness(state,e.id,today),c=completion(state,e.id,today),records=dailyRecords(state,e.id,today),previous=previousSession(state,e.id,today),unit=state.settings.unit;
     const prior=previous[0];
@@ -483,7 +1173,7 @@ function boot() {
       <div class="sets">${Array.from({length:c.target},(_,index)=>{
         const rec=records.find(r=>r.index===index),draft=state.drafts[draftKey(today,e.id,index)]||{weight:'',reps:'',partial:false},last=previousSet(state,e.id,index,today);
         const weight=rec?inUnit(rec,unit):draft.weight,reps=rec?rec.reps:draft.reps;
-        return `<div class="set-block ${rec?'logged':''}" data-row="${index}" data-id="${e.id}"><div class="set-row"><span class="set-num">${index+1}</span><input type="number" step="any" min="0" max="10000" inputmode="decimal" autocomplete="off" aria-label="Set ${index+1} weight in ${unit}" data-field="weight" data-id="${e.id}" data-index="${index}" value="${html(weight)}" placeholder="${last?inUnit(last,unit):'—'}" ${rec?'disabled':''}><input type="number" step="1" min="1" max="999" inputmode="numeric" autocomplete="off" aria-label="Set ${index+1} full reps" data-field="reps" data-id="${e.id}" data-index="${index}" value="${html(reps)}" placeholder="${last?last.reps:'—'}" ${rec?'disabled':''}><label class="partial-label" title="Lengthened partials after full reps"><input type="checkbox" data-field="partial" data-id="${e.id}" data-index="${index}" aria-label="Set ${index+1} included lengthened partials" ${rec?.partial||!rec&&draft.partial?'checked':''} ${rec?'disabled':''}><span aria-hidden="true">P</span></label><button class="set-check" role="checkbox" aria-checked="${!!rec}" data-action="set" data-id="${e.id}" data-index="${index}" aria-label="${rec?'Uncheck':'Complete'} set ${index+1}">${rec?'✓':'+'}</button></div><div class="row-memory"><span>${rec?`Saved ${exactTime(rec.at)}${rec.partial?' · + partials':''}`:last?`Last: ${metric(last)} · ${dateLabel(last.day)}`:'No previous set · 0 = unweighted'}</span>${!rec&&last?`<button data-action="copy" data-id="${e.id}" data-index="${index}" aria-label="Copy previous session into set ${index+1}">↺ Use last</button>`:''}</div></div>`;
+        return `<div class="set-block ${rec?'logged':''}" data-row="${index}" data-id="${e.id}"><div class="set-row"><span class="set-num">${index+1}</span><div class="weight-cell"><textarea rows="1" wrap="soft" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="200" aria-label="Set ${index+1} weight in ${unit}; numbers, x or star to multiply, commas to add" data-field="weight" data-id="${e.id}" data-index="${index}" placeholder="${last?inUnit(last,unit):'—'}" ${rec?'disabled':''}>${html(weight)}</textarea><output class="weight-preview" aria-live="polite"></output></div><input type="number" step="1" min="1" max="999" inputmode="numeric" autocomplete="off" aria-label="Set ${index+1} full reps" data-field="reps" data-id="${e.id}" data-index="${index}" value="${html(reps)}" placeholder="${last?last.reps:'—'}" ${rec?'disabled':''}><label class="partial-label" title="Lengthened partials after full reps"><input type="checkbox" data-field="partial" data-id="${e.id}" data-index="${index}" aria-label="Set ${index+1} included lengthened partials" ${rec?.partial||!rec&&draft.partial?'checked':''} ${rec?'disabled':''}><span aria-hidden="true">P</span></label><button class="set-check" role="checkbox" aria-checked="${!!rec}" data-action="set" data-id="${e.id}" data-index="${index}" aria-label="${rec?'Uncheck':'Complete'} set ${index+1}">${rec?'✓':'+'}</button></div><div class="row-memory"><span>${rec?`Saved ${exactTime(rec.at)}${rec.partial?' · + partials':''}`:last?`Last: ${metric(last)} · ${dateLabel(last.day)}`:'No previous set · 0 = unweighted'}</span>${!rec&&last?`<button data-action="copy" data-id="${e.id}" data-index="${index}" aria-label="Copy previous session into set ${index+1}">↺ Use last</button>`:''}</div></div>`;
       }).join('')}</div>
       <div class="logger-tools"><div class="target-stepper"><button data-action="target-minus" data-id="${e.id}" aria-label="Remove one planned set">−</button><span>${c.target} sets</span><button data-action="target-plus" data-id="${e.id}" aria-label="Add one planned set">+</button></div><button data-action="tools" data-id="${e.id}">± Load tools</button></div>
 
@@ -494,7 +1184,7 @@ function boot() {
 
   // Dialog contents are rendered separately from the persistent timer dock.
   function head(kicker,title,back=false){return `<header class="dialog-head"><div><span class="eyebrow">${html(kicker)}</span><h2 id="dialog-title">${html(title)}</h2></div><button class="icon-button" data-action="${back?'back':'close'}" aria-label="${back?'Back to exercise':'Close'}">${back?'←':'×'}</button></header>`;}
-  function showModal(kind,eid=null,extra={}){ui.modal={kind,id:eid,...extra};renderModal();if(!$('#dialog').open)$('#dialog').showModal();$('#dialog').scrollTop=0;attachFloating();}
+  function showModal(kind,eid=null,extra={}){ui.modal={kind,id:eid,...extra};renderModal();if(!$('#dialog').open)$('#dialog').showModal();refreshWeightFields();$('#dialog').scrollTop=0;attachFloating();}
   function closeModal(){$('#dialog').close();ui.modal=null;renderTop();renderMain();attachFloating();}
   function renderModal(){
     if(!ui.modal)return;
@@ -519,7 +1209,7 @@ function boot() {
     if(kind==='tools')content=toolsPanel(e);
     if(kind==='graph')content=graphPanel(e);
     $('#dialog-content').innerHTML=content;
-    tickLabels();
+    refreshWeightFields();tickLabels();
   }
   function toolsPanel(e){
     const unit=state.settings.unit,plateList=unit==='lbs'?[45,35,25,10,5,2.5]:[20,15,10,5,2.5,1.25];
@@ -550,7 +1240,7 @@ function boot() {
     if(ended.length){const next=copy(state);ended.forEach(([eid])=>delete next.timers[eid]);if(persist(next))state=next;else ended.forEach(([eid])=>delete state.timers[eid]);renderTop();renderModal();syncTimers();alarm();const names=ended.map(([eid])=>exerciseById(state,eid).name).join(', ');$('#announce').textContent=`Rest complete: ${names}`;if(!undo)toast(`Ready: ${names}`);}
     tickLabels();
   }
-  function renderAll(){renderTop();renderMain();renderModal();syncTimers();}
+  function renderAll(){renderTop();renderMain();renderModal();syncTimers();refreshWeightFields();}
   function currentRow(eid,index){const scope=$('#dialog').open?$('#dialog-content'):$('#content');return scope.querySelector(`[data-row="${index}"][data-id="${eid}"]`);}
   function openExercise(eid){if(ui.returnY===null)ui.returnY=window.scrollY;showModal('log',eid);}
   function finishSetView(){
@@ -614,7 +1304,7 @@ function boot() {
     if(a==='import'){$('#backup-file').click();return;}
     if(a==='install'){install();return;}
     if(a==='tools'){const unfinished=Array.from({length:targetSets(state,eid,today)},(_,i)=>i).filter(i=>!dailyRecords(state,eid,today).some(r=>r.index===i));if(!unfinished.length){toast('All sets are logged. Add a set to use load tools.');return;}if(!unfinished.includes(ui.focusSet))ui.focusSet=unfinished[0];ui.plate={bar:state.settings.unit==='lbs'?45:20,plates:[]};showModal('tools',eid);return;}
-    if(a==='quick-weight'){const draft=state.drafts[draftKey(today,eid,ui.focusSet)],last=previousSet(state,eid,ui.focusSet,today);const base=draft?.weight!==undefined&&draft.weight!==''?Number(draft.weight):last?inUnit(last,state.settings.unit):0;applyLoad(eid,Math.max(0,base+Number(b.dataset.amount)));return;}
+    if(a==='quick-weight'){try{const draft=state.drafts[draftKey(today,eid,ui.focusSet)],last=previousSet(state,eid,ui.focusSet,today);const base=draft?.weight!==undefined&&draft.weight!==''?parseWeight(draft.weight):last?inUnit(last,state.settings.unit):0;applyLoad(eid,Math.max(0,base+Number(b.dataset.amount)));}catch(e){error(e.message);}return;}
     if(a==='plate-add'){ui.plate.plates.push(Number(b.dataset.amount));renderModal();return;}
     if(a==='plate-remove'){ui.plate.plates.pop();renderModal();return;}
     if(a==='plate-clear'){ui.plate.plates=[];renderModal();return;}
@@ -627,6 +1317,7 @@ function boot() {
     if(details.matches('[data-folder]')){event.preventDefault();if(!details.open&&ui.folder===null)ui.returnY=window.scrollY;ui.folder=details.open?null:details.dataset.folder;ui.exercise=null;renderMain();}
     if(details.matches('[data-exercise]')){event.preventDefault();ui.exercise=details.open?null:details.dataset.exercise;renderMain();}
   });
+  document.addEventListener('keydown',event=>{if(event.key==='Enter'&&event.target.matches('textarea[data-field=weight]')){event.preventDefault();event.target.blur();}});
   document.addEventListener('focusin',event=>{if(event.target.matches('[data-field=weight]'))ui.focusSet=Number(event.target.dataset.index);});
   document.addEventListener('input',event=>{
     const el=event.target;
@@ -636,12 +1327,13 @@ function boot() {
     if(el.matches('[data-field]')){
       const eid=el.dataset.id,index=Number(el.dataset.index),field=el.dataset.field;
       mutate(s=>writeDraft(s,eid,index,field,field==='partial'?el.checked:el.value,today),{render:false});
-      if(field!=='partial'){const last=previousSet(state,eid,index,today),previous=last?(field==='weight'?inUnit(last,state.settings.unit):last.reps):null;el.classList.toggle('overload',previous!==null&&el.value!==''&&Number(el.value)>previous);}
+      if(field==='weight')updateWeightField(el);
+      if(field!=='partial'){const last=previousSet(state,eid,index,today),previous=last?(field==='weight'?inUnit(last,state.settings.unit):last.reps):null;let value;try{value=field==='weight'?parseWeight(el.value):Number(el.value);}catch{value=NaN;}el.classList.toggle('overload',previous!==null&&el.value!==''&&value>previous);}
     }
     if(el.id==='plate-bar'){ui.plate.bar=el.value;const total=Number(el.value)+2*ui.plate.plates.reduce((n,p)=>n+p,0);$('.plate-total').innerHTML=`${Number.isFinite(total)?total:'—'}<small>${state.settings.unit} total</small>`;const button=$('[data-action=plate-apply]');button.textContent=`Use ${Number.isFinite(total)?total:'—'} ${state.settings.unit}`;}
   });
   document.addEventListener('change',event=>{const el=event.target;
-    if(el.id==='units')mutate(s=>changeUnits(s,el.value));
+    if(el.id==='units'&&!mutate(s=>changeUnits(s,el.value)))el.value=state.settings.unit;
     if(el.id==='sound'){mutate(s=>{s.settings.sound=el.checked;});unlockAudio();}
     if(el.id==='haptics'){mutate(s=>{s.settings.haptics=el.checked;});if(!el.checked)navigator.vibrate?.(0);else buzz();}
     if(el.id==='hapticIntensity')buzz();

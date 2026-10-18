@@ -12,7 +12,7 @@ test('UI event flow auto-fills, collapses, restores captured Y, pins and renders
  const win={scrollY:400,innerHeight:844,addEventListener(){},scrollTo({top}){this.scrollY=top;}};
  const context={document:doc,window:win,navigator:{},location:{href:'http://localhost/flex/',protocol:'http:',hostname:'localhost'},localStorage:{getItem(){return raw;},setItem(k,v){raw=v;}},URL,Date,Math,Number,String,JSON,Map,Set,structuredClone,crypto:globalThis.crypto,setInterval(){},setTimeout(){return 1;},clearTimeout(){},requestAnimationFrame(fn){fn();},console};
  vm.runInNewContext(readFileSync(new URL('../app.js',import.meta.url),'utf8').replace(/^export /gm,''),context);
- assert.match(nodes.get('#top').innerHTML,/DAILY GOAL: 17 PTS/);
+ assert.match(nodes.get('#top').innerHTML,/DAILY GOAL: 13 PTS/);
  const details={open:false,dataset:{group:'chest'},matches(s){return s==='[data-group]';}};
  nodes.get('#content').events.click({target:{closest(s){return s==='summary'?{parentElement:details}:null;}},preventDefault(){}});
  win.scrollY=620;
