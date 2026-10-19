@@ -4,7 +4,7 @@ Offline HTML/CSS/JavaScript PWA. All workout data stays in localStorage. No acco
 
 ## Update and deployment
 
-Export a backup first. Replace all deployed files at the **same URL/path**, including `sw.js`, `manifest.json` and icons. Visit online, close every tab and installed-app window, then reopen to activate cache 3.1.2. Do not clear browser data. The existing storage key and ZIP folder name are retained deliberately so V2 history migrates in place.
+Export a backup first. Replace all deployed files at the **same URL/path**, including `sw.js`, `manifest.json` and icons. Visit online, close every tab and installed-app window, then reopen to activate cache 3.1.3. Do not clear browser data. The existing storage key and ZIP folder name are retained deliberately so V2 history migrates in place.
 
 For a new GitHub Pages deployment, upload the contents of `flex-log-v2` to the repository root, select Settings → Pages → Deploy from branch → main / root, and open the returned HTTPS URL. Install through Chrome’s Add to Home Screen / Install app. For local preview, run `python3 -m http.server 8080` inside the folder and visit http://localhost:8080/. Do not double-click index.html.
 
@@ -77,6 +77,10 @@ Run `npm test` with Node.js 20+. **64 automated tests** cover seed prescriptions
 
 These are model, mocked DOM and mocked service-worker checks, **not real browser layout or Galaxy S10 hardware verification**. On the installed phone, check first-tap audio, test alerts, scroll restoration near the bottom, long-press versus scrolling, tray overflow, offline reopening and foreground/background timer behavior.
 
-## Exercise matrix revision (3.1.2)
+## Exercise matrix revision (3.1.3)
 
 The 31 active exercises in EXERCISES.md replace the previous prescriptions. Side and rear delts share a folder; lower body retains its three folders. Replaced movements retain their old records and drafts under archived entries, so their weights are not used as baselines for new movements. Existing session targets, settings, custom exercises and timer workflow are retained. This migration runs once; later edits survive reload.
+
+## Complete exercise editor (3.1.3)
+
+Edit name, default set count, rep count/range, RIR, minimum/maximum rest seconds, tier/points, rest cycle, category and seat/setup notes. Set count changes also update today's target; earlier session targets are preserved. Remove logged extra sets or clear extra drafts before lowering today's target. Rest edits clear a previous custom rest override and apply to subsequent timers; an already-running timer keeps its deadline. Tier and cycle edits update the dynamic goal. Changes persist across reloads and backups.
