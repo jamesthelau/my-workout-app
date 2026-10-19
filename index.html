@@ -11,19 +11,19 @@
   <link rel="icon" type="image/png" href="./icons/icon-192.png">
   <link rel="apple-touch-icon" href="./icons/icon-192.png">
   <link rel="stylesheet" href="./styles.css">
-  <title>Flex Log 03 — Your floor. Your flow.</title>
+  <title>Flex Log 04 — Your floor. Your flow.</title>
 </head>
 <body>
   <div id="warning" role="alert" hidden></div>
   <div class="app-shell">
     <header class="sticky-top" id="top" aria-label="Daily fatigue and active superset"></header>
     <main>
-      <div class="brand-row"><a class="brand" href="./" aria-label="Flex Log home">FLEX<span>/</span>LOG <b>03</b></a><button class="icon-button settings-button" data-action="settings" aria-label="Settings"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3" fill="#000"/><circle cx="15" cy="17" r="3" fill="#000"/></svg></button></div>
+      <div class="brand-row"><a class="brand" href="./" aria-label="Flex Log home">FLEX<span>/</span>LOG <b>04</b></a><button class="icon-button settings-button" data-action="settings" aria-label="Settings"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3" fill="#000"/><circle cx="15" cy="17" r="3" fill="#000"/></svg></button></div>
       <h1 id="page-title">Your floor. Your flow.</h1>
       <p class="page-subtitle" id="page-subtitle">Choose a muscle. Make the next set count.</p>
-      <div class="page-tabs" aria-label="Exercise organization"><button data-action="page" data-page="muscles" class="selected">Muscles</button><button data-action="page" data-page="stations">Stations</button></div>
+      <div class="filters split-tabs" id="filters" role="tablist" aria-label="Workout split"></div>
+      <div class="page-tabs" aria-label="Exercise organization"><button data-action="page" data-page="muscles" class="selected">Workout</button><button data-action="page" data-page="stations">Stations</button></div>
       <label class="search-wrap"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></svg><input type="search" id="search" placeholder="Find an exercise or muscle…" aria-label="Search exercises and muscles" autocomplete="off"></label>
-      <div class="filters" id="filters" aria-label="Muscle area filter"></div>
       <section id="content" aria-label="Exercises"></section>
       <footer class="app-footer"><span><i></i> ON THIS DEVICE. ALWAYS YOURS.</span><span>LESS FRICTION. MORE GOOD REPS.</span></footer>
     </main>

@@ -38,3 +38,27 @@ html{overflow-anchor:none;scroll-behavior:auto}.fatigue-progress{appearance:none
 @media(max-width:560px){.pin-shell{flex-basis:135px}.pin-card>strong{font-size:11px}.load-label strong{font-size:33px}.sticky-top{padding-top:calc(8px + env(safe-area-inset-top));padding-bottom:6px}.group-name{font-size:14px}.muscle>summary{min-height:76px}.muscle[open]>.exercise-list{padding-left:19px}.pin-grid{margin-top:6px}.daily-line{margin:3px 0 6px}.tray-label .text-button{min-height:30px}.heat-label{font-size:10px}}
 /* Plate shorthand wraps inside the existing weight column. */
 .weight-cell{min-width:0;width:100%;align-self:start}.weight-cell textarea{display:block;box-sizing:border-box;width:100%;min-width:0;max-width:100%;min-height:50px;margin:0;padding:11px 8px;font:inherit;font-size:18px;line-height:24px;text-align:center;color:var(--text);background:#000;border:1px solid #36412e;border-radius:9px;resize:none;overflow:hidden;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-all;touch-action:manipulation}.weight-cell textarea::placeholder{color:#64705a;opacity:1}.weight-cell textarea:focus{outline:2px solid var(--lime);outline-offset:1px}.weight-cell textarea:disabled{color:#9ba895;opacity:1}.weight-cell textarea.overload{border-color:#7ada9b;box-shadow:0 0 12px #7ada9b25}.weight-preview{display:block;max-width:100%;font-size:10px;line-height:1.35;text-align:center;color:#8e9aab;overflow-wrap:anywhere;margin-top:4px}.weight-preview:empty{display:none}.weight-preview.invalid{color:#e9bba1}.weight-cell textarea[aria-invalid=true]{border-color:#805640}
+/* V4: two large split tabs and one shared accessory surface. */
+.split-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:18px 0 22px;overflow:visible}
+.split-tabs .filter{min-height:54px;border-radius:12px;font-size:14px;font-weight:750;letter-spacing:2px;color:#a8b2c0;background:#10151c;border:1px solid #303a49}
+.split-tabs .filter.selected{color:#e7f4ca;background:#242d1c;border-color:#a8ce65;box-shadow:inset 0 -3px 0 #c5ef84}
+.split-tabs .filter:focus-visible{outline:2px solid #e1f7b8;outline-offset:3px}
+.floating-block{margin:25px 0 15px;border:1px solid #3d4a57;border-radius:16px;background:#0a1017;overflow:hidden}
+.floating-block>summary{display:flex;align-items:center;gap:12px;min-height:82px;padding:16px;cursor:pointer;list-style:none;border-left:5px solid var(--heat)}
+.floating-block>summary::-webkit-details-marker{display:none}
+.floating-block>summary .group-name{flex:1;min-width:0}
+.floating-symbol{display:grid;place-items:center;width:30px;height:30px;border:1px solid #465567;border-radius:50%;font-size:22px;color:#b6c9dd;flex-shrink:0}
+.floating-groups{padding:0 10px 10px;border-top:1px solid #283441}
+.floating-groups>.muscle>summary{min-height:72px}
+.floating-groups .group-icon{display:none}
+.heat-due{--heat:#f4bc68}.heat-cold{--heat:#5c718a}
+.exercise.heat-due{border-color:#68502f!important;background:#141109;box-shadow:0 0 14px #f4bc6810}
+.exercise.heat-due>summary .exercise-name{color:#fff0d8!important}
+.exercise.heat-cold>summary .exercise-name{color:#9ea9b8!important}
+.exercise.heat-cold>summary .exercise-meta{color:#8b97a8}
+.muscle.heat-due>summary,.floating-block.heat-due>summary{box-shadow:inset 8px 0 24px #f4bc6809}
+.pin-shell.heat-due{border-color:#8e6a38}.pin-shell.heat-cold .pin-card>strong{color:#a2adbc}
+.state-dot{display:inline-block;width:6px;height:6px;margin-right:6px;vertical-align:1px;border-radius:50%;background:var(--heat)}
+.heat-due>summary .state-dot{box-shadow:0 0 8px #f4bc6880}
+.group-name,.exercise-name,.pin-card>strong{overflow-wrap:anywhere}
+@media(max-width:420px){.floating-groups{padding:0 6px 6px}.floating-groups .muscle>summary{padding:10px 8px;gap:7px}.floating-groups .muscle[open]>.exercise-list{padding:5px 7px 8px}.floating-groups .group-name{font-size:13px}.floating-block>summary{padding:14px 10px}}

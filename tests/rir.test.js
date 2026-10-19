@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {initialState,migrateState,exerciseById,logSet,targetSets,fatigue,copy,setRir,addAlternate,validateState,localDay} from '../app.js';
-test('all 31 prescriptions exactly match the finalized markdown including RIR',()=>{
- const s=initialState();let group='';const rows=readFileSync(new URL('../EXERCISES.md',import.meta.url),'utf8').trim().split('\n').slice(2);assert.equal(rows.length,31);
+test('all 32 prescriptions exactly match the finalized markdown including RIR',()=>{
+ const s=initialState();let group='';const rows=readFileSync(new URL('../EXERCISES.md',import.meta.url),'utf8').trim().split('\n').slice(2);assert.equal(rows.length,32);
  for(const row of rows){const cells=row.split('|').slice(1,-1).map(x=>x.trim());group=cells[0]||group;const e=s.exercises.find(e=>e.name===cells[1]&&!e.archived);assert.ok(e,cells[1]);assert.equal(s.groups.find(g=>g[0]===e.group)[1],group);assert.equal(`${e.sets} × ${e.reps}`,cells[2]);assert.equal(`${e.rir} RIR`,cells[3]);assert.equal(`T${e.tier} / ${4-e.tier}`,cells[5]);const rest=cells[4].replace(/ (min|sec)$/,'').split('–').map(Number).map(n=>cells[4].endsWith('min')?n*60:n);assert.deepEqual(e.rest,rest.length===1?[rest[0],rest[0]]:rest);}
 });
 test('migration preserves existing third reverse-curl sets and drafts; new sessions use two',()=>{

@@ -10,6 +10,6 @@ test('unpinning one exercise leaves other pins, timers and history unchanged',()
 });
 test('both glute rotations use seven days and wrist movements have separate records',()=>{
  const s=initialState();for(const eid of ['e23','e28'])assert.equal(exerciseById(s,eid).targetCooldown,7);
- assert.equal(exerciseById(s,'e29').name,'Reverse Curl');assert.equal(exerciseById(s,'e30').name,'Cable Wrist Extension');
+ assert.equal(exerciseById(s,'e29').name,'Reverse Curl');assert.equal(exerciseById(s,'e30').name,'Reverse Wrist Extension');
  logSet(s,'e15',0,{weight:20,reps:12},at,'wrist');assert.equal(s.history.filter(r=>r.exerciseId==='e30').length,0);
 });

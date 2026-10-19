@@ -2,9 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {initialState,copy,exerciseById,logSet,completeWithHistory,activeIds,urgency,folderUrgency,fatigueGoal,archiveExercise,addAlternate,migrateState,validateState,vibrationPattern} from '../app.js';
 const at=new Date('2026-10-01T12:00:00');
-test('explicit cycles produce 38 + 14 weekly points and a 13-point goal',()=>{
- const s=initialState();assert.deepEqual(s.exercises.filter(e=>!e.archived&&e.restCycle===3).map(e=>e.id),['e11','e15','e20','e22','e24','e32','e25']);assert.deepEqual(fatigueGoal(s),{weekly7:38,weekly3:14,weekly:52,daily:13});
- addAlternate(s,'e1','Alternate Press',{},'other-press');assert.equal(fatigueGoal(s).weekly,52);archiveExercise(s,'e1');assert.equal(fatigueGoal(s).weekly,50);
+test('explicit cycles produce 38 + 16 weekly points and a 14-point goal',()=>{
+ const s=initialState();assert.deepEqual(s.exercises.filter(e=>!e.archived&&e.restCycle===3).map(e=>e.id),['e11','e15','e20','e22','e24','e32','e25','e30']);assert.deepEqual(fatigueGoal(s),{weekly7:38,weekly3:16,weekly:54,daily:14});
+ addAlternate(s,'e1','Alternate Press',{},'other-press');assert.equal(fatigueGoal(s).weekly,54);archiveExercise(s,'e1');assert.equal(fatigueGoal(s).weekly,52);
 });
 test('zero typing adopts prior values, converts units, preserves typed zero and refuses missing baseline',()=>{
  const s=initialState();logSet(s,'e1',0,{weight:100,reps:8,partial:true},at,'prior');s.settings.unit='kg';
@@ -18,12 +18,12 @@ test('a fourth auto-pin rotates oldest pin without losing any independent timer'
 });
 test('exercise heat honors explicit 3-day and 7-day cycles',()=>{
  const s=initialState();for(const eid of ['e1','e20'])logSet(s,eid,0,{weight:25,reps:8},at,eid);
- assert.equal(urgency(s,'e1','2026-10-04').level,'cold');assert.equal(urgency(s,'e20','2026-10-04').level,'due');assert.equal(urgency(s,'e1','2026-10-08').level,'due');assert.equal(urgency(s,'e1','2026-10-12').level,'overdue');assert.equal(urgency(s,'e2','2026-10-12').level,'due');
+ assert.equal(urgency(s,'e1','2026-10-04').level,'cold');assert.equal(urgency(s,'e20','2026-10-04').level,'due');assert.equal(urgency(s,'e1','2026-10-08').level,'due');assert.equal(urgency(s,'e1','2026-10-12').level,'due');assert.equal(urgency(s,'e2','2026-10-12').level,'due');
 });
-test('recent shared-muscle work suppresses parent heat; unrelated overdue muscles still signal',()=>{
+test('complementary parents show the due counterpart; unrelated due muscles still signal',()=>{
  const s=initialState();logSet(s,'e12',0,{weight:25,reps:8},at,'incline');logSet(s,'e13',0,{weight:25,reps:8},new Date('2026-10-12T12:00:00'),'preacher');
- assert.equal(urgency(s,'e12','2026-10-12').level,'overdue');assert.equal(folderUrgency(s,['e12','e13','e14'],'2026-10-12').level,'cold');
- logSet(s,'e24',0,{weight:25,reps:8},at,'adductors');logSet(s,'e25',0,{weight:25,reps:8},new Date('2026-10-12T12:00:00'),'calves');assert.equal(folderUrgency(s,['e24','e25'],'2026-10-12').level,'overdue');
+ assert.equal(urgency(s,'e12','2026-10-12').level,'due');assert.equal(folderUrgency(s,['e12','e13','e14'],'2026-10-12').level,'due');
+ logSet(s,'e24',0,{weight:25,reps:8},at,'adductors');logSet(s,'e25',0,{weight:25,reps:8},new Date('2026-10-12T12:00:00'),'calves');assert.equal(folderUrgency(s,['e24','e25'],'2026-10-12').level,'due');
 });
 
 test('haptic control uses bounded durations with an actual zero/off state',()=>{

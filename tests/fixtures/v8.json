@@ -1,0 +1,746 @@
+{
+  "version": 2,
+  "revision": 8,
+  "groups": [
+    [
+      "chest",
+      "Chest",
+      "upper"
+    ],
+    [
+      "mid-back",
+      "Mid-Back",
+      "upper"
+    ],
+    [
+      "lats",
+      "Lats",
+      "upper"
+    ],
+    [
+      "front-delts",
+      "Front Delts & Triceps",
+      "upper"
+    ],
+    [
+      "side-delts",
+      "Side & Rear Delts",
+      "upper"
+    ],
+    [
+      "biceps",
+      "Biceps",
+      "upper"
+    ],
+    [
+      "forearms",
+      "Forearms",
+      "upper"
+    ],
+    [
+      "quads",
+      "Quads",
+      "lower"
+    ],
+    [
+      "posterior-chain",
+      "Posterior Chain",
+      "lower"
+    ],
+    [
+      "calves-adductors",
+      "Calves & Adductors",
+      "lower"
+    ],
+    [
+      "core",
+      "Core",
+      "core"
+    ]
+  ],
+  "hiddenGroups": [],
+  "exercises": [
+    {
+      "id": "e1",
+      "name": "Convergent Machine Chest Press",
+      "group": "chest",
+      "tier": 2,
+      "sets": 3,
+      "reps": "6–10",
+      "rir": "1–2",
+      "rest": [
+        180,
+        240
+      ],
+      "restCycle": 7,
+      "targetCooldown": 7,
+      "muscles": [
+        "chest"
+      ],
+      "parent": null,
+      "seat": ""
+    },
+    {
+      "id": "e16",
+      "name": "Incline Machine or DB Press",
+      "group": "chest",
+      "tier": 2,
+      "sets": 3,
+      "reps": "8–12",
+      "rir": "1",
+      "rest": [
+        180,
+        180
+      ],
+      "restCycle": 7,
+      "targetCooldown": 7,
+      "muscles": [
+        "chest"
+      ],
+      "parent": null,
+      "seat": ""
+    },
+    {
+      "id": "e2",
+      "name": "Incline Cable Fly",
+      "group": "chest",
+      "tier": 3,
+      "sets": 3,
+      "reps": "10–12",
+      "rir": "0–1",
+      "rest": [
+        120,
+        120
+      ],
+      "restCycle": 7,
+      "targetCooldown": 7,
+      "muscles": [
+        "chest"
+      ],
+      "parent": null,
+      "seat": ""
+    },
+    {
+      "id": "e3",
+      "name": "Pec Deck",
+      "group": "chest",
+      "tier": 3,
+      "sets": 3,
+      "reps": "12–15",
+      "rir": "0",
+      "rest": [
+        120,
+        120
+      ],
+      "restCycle": 7,
+      "targetCooldown": 7,
+      "muscles": [
+        "chest"
+      ],
+      "parent": null,
+      "seat": ""
+    },
+    {
+      "id": "e4",
+      "name": "Chest-Supported T-Bar Row",
+      "group": "mid-back",
+      "tier": 2,
+      "sets": 3,
+      "reps": "6–10",
+      "rir": "1–2",
+      "rest": [
+        180,
+        180
+      ],
+      "restCycle": 7,
+      "targetCooldown": 7,
+      "muscles": [
+        "mid-back"
+      ],
+      "parent": null,
+      "seat": ""
+    },
+    {
+      "id": "e5",
+      "name": "Seated Cable Row",
+      "group": "mid-back",
+      "tier": 2,
+      "sets": 3,
+      "reps": "8–12",
+      "rir": "1",
+      "rest": [
+        120,
+        180
+      ],
+      "restCycle": 7,
+      "targetCooldown": 7,
+      "muscles": [
+        "mid-back"
+      ],
+      "parent": null,
+      "seat": ""
+    },
+    {
+      "id": "e6",
+      "name": "Half-Kneeling Cross-Body Pulldown",
+      "group": "lats",
+      "tier": 2,
+      "sets": 3,
+      "reps": "8–12",
+      "rir": "1",
+      "rest": [
+        120,
+        120
+      ],
+      "restCycle": 7,
+      "targetCooldown": 7,
+      "muscles": [
+        "lats"
+      ],
+      "parent": null,
+      "seat": ""
+    },
+    {
+      "id": "e7",
+      "name": "Neutral Grip Lat Pulldown",
+      "group": "lats",
+      "tier": 2,
+      "sets": 3,
+      "reps": "8–12",
+      "rir": "1",
+      "rest": [
+        120,
+        120
+      ],
+      "restCycle": 7,
+      "targetCooldown": 7,
+      "muscles": [
+        "lats"
+      ],
+      "parent": null,
+      "seat": ""
+    },
+    {
+      "id": "e8",
+      "name": "Machine Shoulder Press",
+      "group": "front-delts",
+      "tier": 2,
+      "sets": 3,
+      "reps": "6–10",
+      "rir": "1–2",
+      "rest": [
+        180,
+        180
+      ],
+      "restCycle": 7,
+      "targetCooldown": 7,
+      "muscles": [
+        "front-delts"
+      ],
+      "parent": null,
+      "seat": ""
+    },
+    {
+      "id": "e17",
+      "name": "Cross-Body Overhead Cable Ext.",
+      "group": "front-delts",
+      "tier": 3,
+      "sets": 3,
+      "reps": "10–12",
+      "rir": "0",
+      "rest": [
+        120,
+        120
+      ],
+      "restCycle": 7,
+      "targetCooldown": 7,
+      "muscles": [
+        "triceps"
+      ],
+      "parent": null,
+      "seat": ""
+    },
+    {
+      "id": "e18",
+      "name": "Cross-Body Cable Pushdown",
+      "group": "front-delts",
+      "tier": 3,
+      "sets": 3,
+      "reps": "10–15",
+      "rir": "0",
+      "rest": [
+        90,
+        90
+      ],
+      "restCycle": 7,
+      "targetCooldown": 7,
+      "muscles": [
+        "triceps"
+      ],
+      "parent": null,
+      "seat": ""
+    },
+    {
+      "id": "e9",
+      "name": "Machine Lateral Raise (Alternating)",
+      "group": "side-delts",
+      "tier": 3,
+      "sets": 3,
+      "reps": "10–15",
+      "rir": "0",
+      "rest": [
+        90,
+        90
+      ],
+      "restCycle": 7,
+      "targetCooldown": 7,
+      "muscles": [
+        "side-delts"
+      ],
+      "parent": null,
+      "seat": ""
+    },
+    {
+      "id": "e10",
+      "name": "Cross-Body Cable Lateral (Alternating)",
+      "group": "side-delts",
+      "tier": 3,
+      "sets": 3,
+      "reps": "12–15",
+      "rir": "0",
+      "rest": [
+        90,
+        90
+      ],
+      "restCycle": 7,
+      "targetCooldown": 7,
+      "muscles": [
+        "side-delts"
+      ],
+      "parent": null,
+      "seat": ""
+    },
+    {
+      "id": "e11",
+      "name": "Reverse Pec Deck",
+      "group": "side-delts",
+      "tier": 3,
+      "sets": 3,
+      "reps": "12–15",
+      "rir": "0",
+      "rest": [
+        90,
+        90
+      ],
+      "restCycle": 3,
+      "targetCooldown": 3,
+      "muscles": [
+        "rear-delts"
+      ],
+      "parent": null,
+      "seat": ""
+    },
+    {
+      "id": "e12",
+      "name": "Incline Dumbbell Curl",
+      "group": "biceps",
+      "tier": 3,
+      "sets": 3,
+      "reps": "8–12",
+      "rir": "0",
+      "rest": [
+        120,
+        120
+      ],
+      "restCycle": 7,
+      "targetCooldown": 7,
+      "muscles": [
+        "elbow-flexors"
+      ],
+      "parent": null,
+      "seat": ""
+    },
+    {
+      "id": "e13",
+      "name": "Preacher Curl",
+      "group": "biceps",
+      "tier": 3,
+      "sets": 3,
+      "reps": "10–12",
+      "rir": "0",
+      "rest": [
+        120,
+        120
+      ],
+      "restCycle": 7,
+      "targetCooldown": 7,
+      "muscles": [
+        "elbow-flexors"
+      ],
+      "parent": null,
+      "seat": ""
+    },
+    {
+      "id": "e14",
+      "name": "Dumbbell Hammer Curl",
+      "group": "biceps",
+      "tier": 3,
+      "sets": 3,
+      "reps": "10–15",
+      "rir": "0",
+      "rest": [
+        90,
+        90
+      ],
+      "restCycle": 7,
+      "targetCooldown": 7,
+      "muscles": [
+        "elbow-flexors"
+      ],
+      "parent": null,
+      "seat": ""
+    },
+    {
+      "id": "e15",
+      "name": "Cable Wrist Curl",
+      "group": "forearms",
+      "tier": 3,
+      "sets": 3,
+      "reps": "12–15",
+      "rir": "0",
+      "rest": [
+        90,
+        90
+      ],
+      "restCycle": 3,
+      "targetCooldown": 3,
+      "muscles": [
+        "wrist-flexors"
+      ],
+      "parent": null,
+      "seat": ""
+    },
+    {
+      "id": "e29",
+      "name": "Reverse Curl",
+      "group": "forearms",
+      "tier": 3,
+      "sets": 2,
+      "reps": "10–15",
+      "rir": "0",
+      "rest": [
+        90,
+        90
+      ],
+      "restCycle": 7,
+      "targetCooldown": 7,
+      "muscles": [
+        "elbow-flexors"
+      ],
+      "parent": null,
+      "seat": ""
+    },
+    {
+      "id": "e19",
+      "name": "Hack Squat",
+      "group": "quads",
+      "tier": 1,
+      "sets": 3,
+      "reps": "6–10",
+      "rir": "1–2",
+      "rest": [
+        240,
+        300
+      ],
+      "restCycle": 7,
+      "targetCooldown": 7,
+      "muscles": [
+        "quads"
+      ],
+      "parent": null,
+      "seat": ""
+    },
+    {
+      "id": "e28",
+      "name": "Bulgarian Split Squat",
+      "group": "quads",
+      "tier": 2,
+      "sets": 3,
+      "reps": "8–12",
+      "rir": "1",
+      "rest": [
+        180,
+        180
+      ],
+      "restCycle": 7,
+      "targetCooldown": 7,
+      "muscles": [
+        "quads",
+        "glutes"
+      ],
+      "parent": null,
+      "seat": ""
+    },
+    {
+      "id": "e20",
+      "name": "Seated Leg Extensions",
+      "group": "quads",
+      "tier": 3,
+      "sets": 3,
+      "reps": "10–15",
+      "rir": "0",
+      "rest": [
+        120,
+        120
+      ],
+      "restCycle": 3,
+      "targetCooldown": 3,
+      "muscles": [
+        "quads"
+      ],
+      "parent": null,
+      "seat": ""
+    },
+    {
+      "id": "e21",
+      "name": "Romanian Deadlift (Bilateral)",
+      "group": "posterior-chain",
+      "tier": 1,
+      "sets": 3,
+      "reps": "6–8",
+      "rir": "1–2",
+      "rest": [
+        240,
+        300
+      ],
+      "restCycle": 7,
+      "targetCooldown": 7,
+      "muscles": [
+        "hamstrings",
+        "glutes",
+        "lower-back"
+      ],
+      "parent": null,
+      "seat": ""
+    },
+    {
+      "id": "e31",
+      "name": "45-Degree Back Ext. (Bilateral)",
+      "group": "posterior-chain",
+      "tier": 2,
+      "sets": 3,
+      "reps": "10–15",
+      "rir": "1",
+      "rest": [
+        120,
+        120
+      ],
+      "restCycle": 7,
+      "targetCooldown": 7,
+      "muscles": [
+        "hamstrings",
+        "glutes",
+        "lower-back"
+      ],
+      "parent": null,
+      "seat": ""
+    },
+    {
+      "id": "e23",
+      "name": "Barbell Hip Thrust",
+      "group": "posterior-chain",
+      "tier": 2,
+      "sets": 3,
+      "reps": "8–12",
+      "rir": "1",
+      "rest": [
+        180,
+        180
+      ],
+      "restCycle": 7,
+      "targetCooldown": 7,
+      "muscles": [
+        "glutes"
+      ],
+      "parent": null,
+      "seat": ""
+    },
+    {
+      "id": "e22",
+      "name": "Seated Machine Leg Curl",
+      "group": "posterior-chain",
+      "tier": 3,
+      "sets": 3,
+      "reps": "8–12",
+      "rir": "0",
+      "rest": [
+        120,
+        120
+      ],
+      "restCycle": 3,
+      "targetCooldown": 3,
+      "muscles": [
+        "hamstrings"
+      ],
+      "parent": null,
+      "seat": ""
+    },
+    {
+      "id": "e24",
+      "name": "Seated Adductor Machine",
+      "group": "calves-adductors",
+      "tier": 3,
+      "sets": 3,
+      "reps": "10–15",
+      "rir": "0",
+      "rest": [
+        120,
+        120
+      ],
+      "restCycle": 3,
+      "targetCooldown": 3,
+      "muscles": [
+        "adductors"
+      ],
+      "parent": null,
+      "seat": ""
+    },
+    {
+      "id": "e32",
+      "name": "Seated Abductor Machine",
+      "group": "calves-adductors",
+      "tier": 3,
+      "sets": 3,
+      "reps": "10–15",
+      "rir": "0",
+      "rest": [
+        120,
+        120
+      ],
+      "restCycle": 3,
+      "targetCooldown": 3,
+      "muscles": [
+        "hip-abductors"
+      ],
+      "parent": null,
+      "seat": ""
+    },
+    {
+      "id": "e25",
+      "name": "Leg Press Calf Raise",
+      "group": "calves-adductors",
+      "tier": 3,
+      "sets": 3,
+      "reps": "10–15",
+      "rir": "0",
+      "rest": [
+        90,
+        90
+      ],
+      "restCycle": 3,
+      "targetCooldown": 3,
+      "muscles": [
+        "calves"
+      ],
+      "parent": null,
+      "seat": ""
+    },
+    {
+      "id": "e26",
+      "name": "Weighted Cable Crunches",
+      "group": "core",
+      "tier": 3,
+      "sets": 3,
+      "reps": "10–15",
+      "rir": "0",
+      "rest": [
+        90,
+        90
+      ],
+      "restCycle": 7,
+      "targetCooldown": 7,
+      "muscles": [
+        "core"
+      ],
+      "parent": null,
+      "seat": ""
+    },
+    {
+      "id": "e27",
+      "name": "Hanging / Captain's Chair Leg Raise",
+      "group": "core",
+      "tier": 3,
+      "sets": 3,
+      "reps": "10–15",
+      "rir": "1",
+      "rest": [
+        90,
+        90
+      ],
+      "restCycle": 7,
+      "targetCooldown": 7,
+      "muscles": [
+        "core"
+      ],
+      "parent": null,
+      "seat": ""
+    },
+    {
+      "id": "e30",
+      "name": "Cable Wrist Extension",
+      "group": "forearms",
+      "tier": 3,
+      "sets": 3,
+      "reps": "12–15",
+      "rir": "",
+      "restCycle": 7,
+      "muscles": [
+        "wrist-extensors"
+      ],
+      "rest": [
+        60,
+        90
+      ],
+      "targetCooldown": 3,
+      "parent": null,
+      "seat": "",
+      "archived": true
+    }
+  ],
+  "history": [],
+  "drafts": {},
+  "plans": {},
+  "epoch": 0,
+  "fatigueResets": {},
+  "folders": [
+    {
+      "id": "cables",
+      "name": "Cable Station",
+      "exerciseIds": [
+        "e2",
+        "e6",
+        "e10",
+        "e15",
+        "e17",
+        "e18",
+        "e26",
+        "e5"
+      ]
+    }
+  ],
+  "pinned": [],
+  "timers": {},
+  "clock": {
+    "startedAt": null,
+    "elapsed": 0,
+    "ended": false
+  },
+  "settings": {
+    "unit": "lbs",
+    "sound": true,
+    "haptics": true,
+    "volume": 0.6,
+    "hapticIntensity": 0.5
+  },
+  "rest": {}
+}

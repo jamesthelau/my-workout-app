@@ -1,86 +1,43 @@
-# Flex Log V3 — workflow, urgency and hardware controls
+# Flex Log V4
 
-Offline HTML/CSS/JavaScript PWA. All workout data stays in localStorage. No accounts, backend, external scripts or build step.
+Offline HTML/CSS/JavaScript PWA. Workout data stays in localStorage. No accounts, backend, external scripts or build step.
 
 ## Update and deployment
 
-Export a backup first. Replace all deployed files at the **same URL/path**, including `sw.js`, `manifest.json` and icons. Visit online, close every tab and installed-app window, then reopen to activate cache 3.1.3. Do not clear browser data. The existing storage key and ZIP folder name are retained deliberately so V2 history migrates in place.
+Export a backup in Misc. Replace all deployed files at the **same URL/path**, including `sw.js`, `manifest.json` and icons. Visit online, close every tab and installed-app window, then reopen to activate cache **4.0.0**. Do not clear browser data. The storage key and ZIP folder name remain unchanged so existing history migrates in place.
 
-For a new GitHub Pages deployment, upload the contents of `flex-log-v2` to the repository root, select Settings → Pages → Deploy from branch → main / root, and open the returned HTTPS URL. Install through Chrome’s Add to Home Screen / Install app. For local preview, run `python3 -m http.server 8080` inside the folder and visit http://localhost:8080/. Do not double-click index.html.
+For GitHub Pages, upload the contents of `flex-log-v2` to the repository root, enable Pages for the main branch/root and open the resulting HTTPS URL. Install through Chrome’s Add to Home Screen / Install app. For a local preview, run `python3 -m http.server 8080` inside the folder and visit http://localhost:8080/. Do not double-click index.html.
 
-## Plate shorthand (3.1)
+## Workout split and readiness
 
-The weight field accepts plain numbers or comma-separated blocks, each optionally containing one `x`, `X` or `*` multiplication. Examples: `45x5, 25x2` = 275; `45x2, 10` = 100; `45x2, 25` = 115. Commas always add blocks; they are not thousands separators. Include bar weight explicitly if needed. No implicit per-side doubling is applied. Decimal plates are supported, and fractional totals are retained rather than truncated.
+Upper: Chest, Mid-Back, Lats, Front Delts & Triceps, Biceps. Lower: Quads, Posterior Chain, Adductors. Both tabs contain one **Floating Accessories** accordion with Side & Rear Delts, Forearms, Calves and Core. All views share exercise IDs, history, drafts, pins and timers. Stations remain available for custom equipment folders.
 
-The plain-text weight control wraps and automatically grows inside its column, avoiding horizontal text scrolling. A faint live total appears beneath it. The text keyboard exposes letters and symbols; Enter dismisses it. Expressions may contain up to 200 characters, with a total from 0 to 10,000. Incomplete or invalid expressions show “Check format” and cannot be logged. The parser does not use eval or execute code.
+Amber borders and dots indicate due exercises; muted blue-gray indicates recently trained exercises. Every exercise remains clickable and loggable. Logging any set immediately updates readiness. Paired seven-day movements become due when their complementary side is logged, or after seven local midnight boundaries. RDL requires **both** Back Extension and Hip Thrust after its latest log. Standalone three-day/seven-day exercises use their own calendar cycle. See [V4.md](V4.md) for every mapping and edge case.
 
-Completing a set stores only the calculated numeric weight; reopening the completed row shows that number. Existing auto-collapse and auto-pinning still apply. Progression graphs continue to use numeric records. Drafts retain shorthand until completed. Load-tool increments evaluate the draft first. Switching units evaluates valid draft expressions before conversion; fix incomplete expressions before switching.
+## Logging and supersets
 
-## Logging workflow
+Blank weight/reps adopt the corresponding set from the previous session, with unit conversion. First-time sets require values. Typed values, including zero weight, take precedence. Saving a set pins the exercise to the active tray, closes its logger and folder, and restores the original scroll position. The tray retains running timers even if a fourth exercise rotates one of the three pins out. Individual × buttons unpin exercises without deleting logs or stopping an unfinished exercise’s timer.
 
-Blank weight/reps fields adopt the exact previous-session ghost values when you check a set. Each field falls back independently; typed values, including zero weight, take priority. Unit conversion matches the displayed ghost. Partials are never silently copied. With no prior baseline, enter weight and reps first.
+Completing the final planned set stops that exercise’s timer and removes it from the tray. This uses the current target (two, three or a custom number of sets), including out-of-order checkmarks. Other timers continue. There is no bottom timer bar.
 
-A successfully saved non-final set automatically pins its exercise, closes the logger and its parent folder, and returns to the captured pre-opening page Y offset. Search is cleared so folders remain collapsed. The page retains enough height to preserve that offset even near the bottom. Unchecking a set does not collapse the editor. Three-second Undo restores the previous workout state.
+The weight field accepts plain numbers or comma-separated blocks with one `x`, `X` or `*` multiplication per block. `45x5, 25x2` = 275; `45x2, 10` = 100. Include the bar explicitly; there is no implicit doubling or thousands separator. Decimals are retained. Text wraps and grows vertically with a live total. Invalid/incomplete expressions cannot be logged. History and progression graphs store numeric totals only.
 
-The active tray keeps the three most recently pinned exercises. Logging a fourth rotates the oldest pin out. Completing the final planned set stops that exercise’s timer and removes its pin immediately. This uses the current set target (including two-set exercises and manually adjusted targets), not a hardcoded third set. Other exercise timers continue. Undo restores the preceding pin/timer state. Every still-running timer remains in the same top tray until it expires or is stopped, so automatic pinning cannot hide a countdown. Extra cards scroll horizontally on phones. Each timer belongs to its exercise and uses an absolute deadline. Unpinning never erases history or stops rest. The top of an open exercise dialog also exposes the active exercises and their countdowns.
+## Exercise settings and fatigue
 
-The bottom timer bar and its +/- controls are removed. Prescribed rest defaults to the midpoint; the existing per-exercise rest setting changes future timers. End workout stops timers, clears pins and retains logs/final stopwatch duration.
+[EXERCISES.md](EXERCISES.md) contains the current 32-exercise matrix. Reverse Curl is in Biceps; Reverse Wrist Extension is a three-day forearm accessory (3 × 12–15, 0 RIR, 90 sec, Tier 3). Other prescriptions are preserved.
 
-## Urgency spectrum
+Hold an exercise or use Edit exercise to change its name, sets, target reps, RIR, rest min/max, tier, rest cycle, category and setup notes. Hold a category or use its Edit button to rename, delete, add or move exercises. Deleted entries retain history; Undo is offered. Custom alternates track their own independent cycles. A complementary group falls back to individual cycles if a member is hidden/deleted or changed to three days.
 
-The final explicit rest-cycle matrix in EXERCISES.md is authoritative. The earlier 76-point example and generic three-day folder rule are superseded.
+Fatigue points are awarded once all planned sets are complete: Tier 1 = 3, Tier 2 = 2, Tier 3 = 1. Daily goal = ceiling((seven-day points + 2 × three-day points) / 4). The current seed totals **38 + 16 = 54 weekly points**, giving **14 daily points**. Edits and deletions update this calculation. Custom alternates are excluded from the goal to avoid double-counting a slot, but completed alternates contribute actual fatigue.
 
-Each exercise compares local calendar days since its latest set with its own restCycle:
+End workout stops timers and clears pins while retaining logs and final duration. Reset Daily Fatigue resets the day’s score without removing logs. Reset Cooldowns starts a new readiness epoch without removing logs or changing fatigue.
 
-- Cool blue: less than half the cycle elapsed.
-- Muted green: at least halfway, but not due yet.
-- Amber: cycle reached, less than 1.5 cycles elapsed.
-- Coral: at least 1.5 cycles elapsed, considered overdue for planning.
+## Hardware and backups
 
-Never-logged and cooldown-reset exercises show amber with a “Not logged” label, rather than pretending they have an overdue history. Text labels and dates supplement color. Nothing blocks logging.
+Misc → Hardware Settings controls audio volume and vibration pulse duration/pattern. Web Audio unlocks on user interaction. A Test button checks supported output on the phone. Browser APIs cannot control motor strength. Physical Galaxy S10 behavior still requires testing on the device; browser background suspension can delay alerts.
 
-Parent folders use muscle tags. For each represented muscle, the least-urgent related exercise determines that muscle’s signal; the most-urgent distinct muscle determines the folder’s signal. This lets recent Preacher Curls suppress the biceps parent even if Incline Curls are overdue, while overdue adductors can light up a folder containing recently trained calves. Aggregation uses the full muscle population, not just search results, and each candidate’s own 3-/7-day cycle.
+Backups contain exercise settings, history, drafts, targets, station links, timers, setup notes, settings and the workout clock. Import validates before replacing state. Migration retains these fields; it moves Reverse Curl to Biceps and Calf Raise to Calves and restores the requested wrist extension. Later user edits survive reopening.
 
-The tags deliberately account for shared loading: curls share elbow flexors; RDLs and back extensions share hamstrings, glutes and lower back; Bulgarian split squats share quads and glutes. Other muscle regions are separated. These are conservative scheduling cues, not measured recovery or injury predictions. Custom alternates inherit their parent’s tags; new standalone exercises default to their category tag. Moving an exercise between folders retains its muscle identity.
+## Checks
 
-Parent category cards have broad slate backgrounds, bold headings and thick heat edges. Exercises use inset dark rows with thinner edges and lighter typography. Hold either header to edit; visible Edit controls remain available.
-
-## Dynamic fatigue goal
-
-The 30 active seed exercises yield:
-
-- 7-day exercises: 38 points, counted once per week.
-- 3-day exercises: 7 points × 2 sessions = 14 points.
-- Total: 52 weekly points / 4 workout days = **Daily Goal: 13 Pts**.
-
-The numerator still increases only when all planned sets of an exercise are complete. The progress bar caps visually at the goal, while the numeric score continues above it. The goal recalculates from active standalone exercises, their tier and restCycle. Archived entries and alternates are excluded from the goal so alternatives do not double-count a planned slot; completing an alternate still contributes actual fatigue points. New standalone exercises count toward the goal. Edit exercise includes a 3-/7-day cycle selector. New standalone exercises default to three days; alternates inherit their parent’s cycle.
-
-## Misc → Hardware Settings
-
-- Audio toggle and 0–100% tone-volume slider.
-- Haptics toggle and intensity slider controlling pulse duration/pattern, not physical motor amplitude.
-- Test tone & vibration button plus AudioContext/API status.
-
-The Web Audio context is created/unlocked during user interaction, resumed when suspended, and reused for rest alerts. Two short tones use a gain envelope to avoid sharp clicks. Vibration uses short bounded pulses; zero disables pulses. Hardware preferences persist across reloads and backups. Screen wake lock is requested during rest.
-
-Designed for Android Chrome usage, including the Galaxy S10, but **not physically tested on that device**. Browser APIs cannot guarantee alerts in silent/DND mode, with media volume muted, during browser suspension, or with restrictive power settings. Timers reconcile their deadlines on return. Device motor strength is controlled by Android, not navigator.vibrate().
-
-API references: https://developer.mozilla.org/en-US/docs/Web/API/Navigator/vibrate and https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API/Best_practices
-
-## Persistence and retained features
-
-Migration adds restCycle, muscle tags and hardware preferences without replacing logs, RIR, seat positions, custom names, folders or timers. Separate Reset Daily Fatigue and Reset All Cooldowns controls remain, both preserving history. JSON backup import/export, progression graphs, partial flags, per-exercise seat memory, custom alternates, load tools and press-and-hold editing remain available. The full current prescription table is in EXERCISES.md.
-
-## Verification
-
-Run `npm test` with Node.js 20+. **64 automated tests** cover seed prescriptions, cycles/goal, muscle-aware urgency, midnight/DST boundaries, zero-type fallback, unit conversion, pin/timer retention, migration, hardware bounds, and earlier history/backup features. A mocked DOM event-flow test checks logging → collapse → scroll restoration → pinning, plus Hardware Settings rendering. Migration is also tested against the actual prior 2.6 source.
-
-These are model, mocked DOM and mocked service-worker checks, **not real browser layout or Galaxy S10 hardware verification**. On the installed phone, check first-tap audio, test alerts, scroll restoration near the bottom, long-press versus scrolling, tray overflow, offline reopening and foreground/background timer behavior.
-
-## Exercise matrix revision (3.1.3)
-
-The 31 active exercises in EXERCISES.md replace the previous prescriptions. Side and rear delts share a folder; lower body retains its three folders. Replaced movements retain their old records and drafts under archived entries, so their weights are not used as baselines for new movements. Existing session targets, settings, custom exercises and timer workflow are retained. This migration runs once; later edits survive reload.
-
-## Complete exercise editor (3.1.3)
-
-Edit name, default set count, rep count/range, RIR, minimum/maximum rest seconds, tier/points, rest cycle, category and seat/setup notes. Set count changes also update today's target; earlier session targets are preserved. Remove logged extra sets or clear extra drafts before lowering today's target. Rest edits clear a previous custom rest override and apply to subsequent timers; an already-running timer keeps its deadline. Tier and cycle edits update the dynamic goal. Changes persist across reloads and backups.
+Run `npm test` with Node.js. Tests cover migrations, complementary groups, midnight/DST boundaries, shared accessories, tab interactions, auto-fill, plate shorthand, scroll restoration, final-set cleanup and offline cache behavior. Browser layout and physical audio/vibration must be checked separately.

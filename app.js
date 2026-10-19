@@ -2,10 +2,10 @@
 export const GROUPS = [
   ['chest','Chest','upper'],
   ['mid-back','Mid-Back','upper'],['lats','Lats','upper'],['front-delts','Front Delts & Triceps','upper'],
-  ['side-delts','Side & Rear Delts','upper'],
-  ['biceps','Biceps','upper'],['forearms','Forearms','upper'],
+  ['side-delts','Side & Rear Delts','core'],
+  ['biceps','Biceps','upper'],['forearms','Forearms','core'],
   ['quads','Quads','lower'],['posterior-chain','Posterior Chain','lower'],
-  ['calves-adductors','Calves & Adductors','lower'],['core','Core','core']
+  ['calves-adductors','Adductors','lower'],['calves','Calves','core'],['core','Core','core']
 ];
 const legacyGroups = {'rear-delts':'side-delts',triceps:'front-delts',hamstrings:'posterior-chain',glutes:'posterior-chain','misc-legs':'posterior-chain','quads-glutes':'quads','hamstrings-adductors-calves':'posterior-chain','upper-chest':'chest','mid-chest':'chest',adductors:'calves-adductors',calves:'calves-adductors','core-flexion':'core','core-stability':'core'};
 const seedRows = [
@@ -673,7 +673,20 @@ const currentRows = [
     "seat": ""
   }
 ];
-export const SEED = [...currentRows,previousSeed.find(e=>e.id==='e30')];
+// Stable IDs keep logs, drafts, pins and user edits attached to the same movement.
+const v4Moves={e29:'biceps',e25:'calves'};
+const wristExtension={...previousSeed.find(e=>e.id==='e30'),name:'Reverse Wrist Extension',archived:false,rir:'0',rest:[90,90],restCycle:3,targetCooldown:3};
+export const SEED = [...currentRows.map(e=>({...e,group:v4Moves[e.id]||e.group})),wristExtension];
+export const COMPLEMENTARY = [
+  [['e1'],['e16']], [['e2'],['e3']], [['e4'],['e5']], [['e6'],['e7']],
+  [['e17'],['e18']], [['e12'],['e13']], [['e14'],['e29']], [['e19'],['e28']],
+  [['e21'],['e31','e23']], [['e9'],['e10']], [['e26'],['e27']]
+];
+export function groupArea(group){return ['side-delts','forearms','calves','core'].includes(group[0])?'floating':group[2]==='lower'?'lower':group[2]==='core'?'floating':'upper';}
+export function homeGroups(s,tab='upper'){
+  const active=s.groups.filter(g=>!s.hiddenGroups.includes(g[0]));
+  return {main:active.filter(g=>groupArea(g)===tab),floating:active.filter(g=>groupArea(g)==='floating')};
+}
 export const copy = value => structuredClone(value);
 export const id = () => crypto.randomUUID();
 export const nameKey = name => name.trim().normalize('NFKC').toLowerCase();
@@ -687,7 +700,7 @@ export function ordinal(day) {
 }
 export const daysBetween = (earlier,later) => Math.max(0,ordinal(later)-ordinal(earlier));
 export function initialState() {
-  return {version:2,revision:8,groups:copy(GROUPS),hiddenGroups:[],exercises:copy(SEED),history:[],drafts:{},plans:{},epoch:0,fatigueResets:{},
+  return {version:2,revision:9,groups:copy(GROUPS),hiddenGroups:[],exercises:copy(SEED),history:[],drafts:{},plans:{},epoch:0,fatigueResets:{},
     folders:[{id:'cables',name:'Cable Station',exerciseIds:['e2','e6','e10','e15','e17','e18','e26','e5']}],
     pinned:[],timers:{},clock:{startedAt:null,elapsed:0,ended:false},
     settings:{unit:'lbs',sound:true,haptics:true,volume:0.6,hapticIntensity:0.5},rest:{}};
@@ -707,7 +720,7 @@ export function fatigue(s,day=localDay()) {
   return {score:complete.reduce((n,e)=>n+points(e),0),count:complete.length};
 }
 export function readiness(s,exerciseId,day=localDay()) {
-  const record=s.history.filter(r=>r.exerciseId===exerciseId&&r.epoch===s.epoch).sort((a,b)=>b.at.localeCompare(a.at))[0];
+  const record=s.history.filter(r=>r.exerciseId===exerciseId&&r.epoch===s.epoch&&r.day<=day).sort((a,b)=>b.at.localeCompare(a.at))[0];
   return record?{days:daysBetween(record.day,day),day:record.day,at:record.at}:null;
 }
 export function readinessStatus(s,exerciseId,day=localDay()) {
@@ -718,7 +731,8 @@ export function readinessStatus(s,exerciseId,day=localDay()) {
 export function migrateState(input) {
   // Validate legacy data first; preserve exercise IDs and every historical record.
   const s=copy(validateState(input,{allowMissingCooldown:true,legacy:true}));
-  if(s.revision>=8)return validateState(s);
+  if(s.revision>=9)return validateState(s);
+  if(s.revision===8)return updateV4(s);
   if(s.revision===7)return updateExerciseList(s);
   if(s.revision===6)return updateV3(s);
   // Keep existing reverse-curl sessions/drafts at their original planned set count.
@@ -811,7 +825,27 @@ function updateExerciseList(s){
   s.groups=s.groups.filter(g=>g[0]!=='rear-delts');
   for(const group of GROUPS){const g=s.groups.find(g=>g[0]===group[0]);if(g)g[1]=group[1];else s.groups.push(copy(group));}
   s.hiddenGroups=s.hiddenGroups.filter(g=>!GROUPS.some(x=>x[0]===g)&&g!=='rear-delts');
-  s.revision=8;return validateState(s);
+  s.revision=8;return updateV4(s);
+}
+function updateV4(s){
+  for(const group of GROUPS){
+    const existing=s.groups.find(g=>g[0]===group[0]);
+    if(!existing)s.groups.push(copy(group));
+    else {
+      existing[2]=group[2];
+      if(existing[0]==='calves-adductors'&&existing[1]==='Calves & Adductors')existing[1]='Adductors';
+    }
+  }
+  for(const e of s.exercises){
+    if(e.id==='e29'&&e.group==='forearms')e.group='biceps';
+    if((e.id==='e25'||e.parent==='e25')&&e.group==='calves-adductors')e.group='calves';
+    if(e.parent==='e29'&&e.group==='forearms')e.group='biceps';
+  }
+  // Reintroduce the requested wrist movement without overwriting any saved prescription.
+  const wrist=exerciseById(s,'e30');
+  if(!wrist)s.exercises.push(copy(wristExtension));
+  else {if(wrist.archived){wrist.restCycle=3;wrist.targetCooldown=3;}wrist.archived=false;if(wrist.name==='Cable Wrist Extension')wrist.name=wristExtension.name;if(!wrist.rir)wrist.rir='0';if(wrist.rest[0]===60&&wrist.rest[1]===90)wrist.rest=[90,90];}
+  s.revision=9;return validateState(s);
 }
 export function fatigueGoal(s){
   const active=s.exercises.filter(e=>!e.archived&&!e.parent&&!s.hiddenGroups.includes(e.group));
@@ -820,17 +854,30 @@ export function fatigueGoal(s){
   return {weekly7,weekly3,weekly:weekly7+weekly3,daily:Math.ceil((weekly7+weekly3)/4)};
 }
 export function urgency(s,eid,day=localDay()){
-  const hit=readiness(s,eid,day),cycle=exerciseById(s,eid).restCycle;
-  const ratio=hit?hit.days/cycle:1;
-  return {hit,ratio,cycle,level:ratio<0.5?'cold':ratio<1?'warming':ratio<1.5?'due':'overdue'};
+  const e=exerciseById(s,eid),cycle=e.restCycle;
+  const hit=readiness(s,eid,day);
+  let due=!hit||hit.days>=cycle;
+  const available=id=>{const x=exerciseById(s,id);return x&&!x.archived&&!s.hiddenGroups.includes(x.group)&&x.restCycle===7;};
+  const pair=cycle===7&&COMPLEMENTARY.find(sides=>sides.flat().includes(eid)&&sides.flat().every(available));
+  if(pair&&hit&&hit.days<7){
+    // Reconstruct latest events without extra persisted flags; insertion order breaks ties.
+    const latest=new Map();
+    const after=(a,b)=>!!a&&(!b||a.at>b.at||a.at===b.at&&a.order>b.order);
+    s.history.forEach((r,order)=>{
+      if(r.epoch!==s.epoch||r.day>day||!pair.flat().includes(r.exerciseId))return;
+      const event={at:Date.parse(r.at),order};
+      if(after(event,latest.get(r.exerciseId)))latest.set(r.exerciseId,event);
+    });
+    const own=latest.get(eid),opposite=pair.find(side=>!side.includes(eid));
+    due=opposite.every(id=>after(latest.get(id),own));
+  }
+  return {hit,ratio:due?1:0,cycle,level:due?'due':'cold',paired:!!pair};
 }
 export function folderUrgency(s,ids,day=localDay()){
   const active=s.exercises.filter(e=>!e.archived&&!s.hiddenGroups.includes(e.group));
   const members=active.filter(e=>ids.includes(e.id));
-  const tags=[...new Set(members.flatMap(e=>e.muscles))];
-  const ratios=tags.map(tag=>Math.min(...active.filter(e=>e.muscles.includes(tag)).map(e=>urgency(s,e.id,day).ratio)));
-  const ratio=ratios.length?Math.max(...ratios):0;
-  return {ratio,level:ratio<0.5?'cold':ratio<1?'warming':ratio<1.5?'due':'overdue'};
+  const due=members.some(e=>urgency(s,e.id,day).level==='due');
+  return {ratio:due?1:0,level:due?'due':'cold'};
 }
 export function activeIds(s){return [...new Set([...s.pinned,...Object.keys(s.timers)])];}
 export function completeWithHistory(s,eid,index,input,now=new Date(),recordId=id()){
@@ -1107,7 +1154,7 @@ function boot() {
   const metric=r=>`${r.weight} ${r.unit} × ${r.reps}${r.partial?' + P':''}`;
   let state=initialState(),blocked=false,unreadable=null,today=localDay(),undo=null,toastId;
   let audio=null,wake=null,wakePending=false,installPrompt=null,offline='Waiting for offline setup…';
-  const ui={page:'muscles',filter:'all',search:'',group:null,exercise:null,folder:null,modal:null,hardware:false,returnY:null,graph:'volume',graphPoint:null,focusSet:0,plate:{bar:45,plates:[]}};
+  const ui={page:'muscles',filter:'upper',floating:false,search:'',group:null,exercise:null,folder:null,modal:null,hardware:false,returnY:null,graph:'volume',graphPoint:null,focusSet:0,plate:{bar:45,plates:[]}};
   try{const raw=localStorage.getItem(key);if(raw){try{state=migrateState(JSON.parse(raw));if(JSON.stringify(state)!==raw)persist(state);}catch{blocked=true;unreadable=raw;warn('Saved data could not be read. It has not been overwritten. Open Settings to export the original or restore a V2 backup.');}}}
   catch{blocked=true;warn('Device storage is unavailable. Logging is disabled. Allow site storage and reopen the app.');}
   function warn(text){$('#warning').hidden=false;$('#warning').textContent=text;}
@@ -1151,25 +1198,34 @@ function boot() {
     ${active.length?`<div class="pin-grid">${active.map(eid=>{const e=exerciseById(state,eid),u=urgency(state,eid,today),pinned=state.pinned.includes(eid);return `<div class="pin-shell heat-${u.level}"><button class="pin-card" data-action="open" data-id="${eid}"><strong>${html(e.name)}</strong><span class="pin-bottom">${pips(eid)}<small data-countdown="${eid}"></small></span></button>${pinned?`<button class="unpin-button" data-action="pin" data-id="${eid}" aria-label="Unpin ${html(e.name)}">×</button>`:''}${state.timers[eid]?`<button class="timer-stop-top" data-action="timer-stop" data-id="${eid}" aria-label="Stop ${html(e.name)} timer">Stop rest</button>`:''}</div>`;}).join('')}</div>`:''}</div>`;
     tickLabels();
   }
-  function exerciseRow(e){const c=completion(state,e.id,today),r=readiness(state,e.id,today),pinned=state.pinned.includes(e.id),status=urgency(state,e.id,today);return `<details class="exercise heat-${status.level} ${c.complete?'complete':c.done?'in-progress':''} ${e.parent?'alternate':''}" data-exercise="${e.id}" ${ui.exercise===e.id?'open':''}><summary><div class="exercise-summary"><span class="exercise-name">${html(e.name)}</span><span class="heat-label">${status.hit?status.level:'Not logged'} · ${e.restCycle}d cycle</span><span class="exercise-meta">${e.parent?'Alternate · ':''}${since(r)} <i>·</i> T${e.tier} / ${points(e)} pts</span></div>${pips(e.id)}<button class="pin-button ${pinned?'pinned':''}" data-action="pin" data-id="${e.id}" aria-label="${pinned?'Unpin':'Pin'} ${html(e.name)}" aria-pressed="${pinned}">${pinned?'◆':'◇'}</button><span class="chevron" aria-hidden="true">⌄</span></summary>${ui.exercise===e.id?logger(e):''}</details>`;}
-  function filtered(exercises){const q=ui.search.toLowerCase().trim();return exercises.filter(e=>!e.archived&&!state.hiddenGroups.includes(e.group)&&(!q||`${e.name} ${state.groups.find(g=>g[0]===e.group)[1]}`.toLowerCase().includes(q))&&(ui.filter==='all'||state.groups.find(g=>g[0]===e.group)[2]===ui.filter));}
+  function exerciseRow(e){const c=completion(state,e.id,today),r=readiness(state,e.id,today),pinned=state.pinned.includes(e.id),status=urgency(state,e.id,today);return `<details class="exercise heat-${status.level} ${c.complete?'complete':c.done?'in-progress':''} ${e.parent?'alternate':''}" data-exercise="${e.id}" ${ui.exercise===e.id?'open':''}><summary><div class="exercise-summary"><span class="exercise-name">${html(e.name)}</span><span class="heat-label"><i class="state-dot" aria-hidden="true"></i><span class="sr-only">${status.level==='due'?'Due':'Recently trained'} · </span>${status.paired?'Complementary rotation':`${e.restCycle}d cycle`}</span><span class="exercise-meta">${e.parent?'Alternate · ':''}${since(r)} <i>·</i> T${e.tier} / ${points(e)} pts</span></div>${pips(e.id)}<button class="pin-button ${pinned?'pinned':''}" data-action="pin" data-id="${e.id}" aria-label="${pinned?'Unpin':'Pin'} ${html(e.name)}" aria-pressed="${pinned}">${pinned?'◆':'◇'}</button><span class="chevron" aria-hidden="true">⌄</span></summary>${ui.exercise===e.id?logger(e):''}</details>`;}
+  function filtered(exercises){const q=ui.search.toLowerCase().trim();return exercises.filter(e=>!e.archived&&!state.hiddenGroups.includes(e.group)&&(!q||`${e.name} ${state.groups.find(g=>g[0]===e.group)[1]}`.toLowerCase().includes(q)));}
   function renderMain(){
     $('#page-title').textContent=ui.page==='muscles'?'Your floor. Your flow.':'Find your station.';
-    $('#page-subtitle').textContent=ui.page==='muscles'?'Cool = recent · Amber = due · Coral = overdue. Hold to edit.':'Same exercises. One history. Wherever you train.';
+    $('#page-subtitle').textContent=ui.page==='muscles'?'Glow = due · Muted = recent. Hold to edit.':'Same exercises. One history. Wherever you train.';
     $('#search').placeholder=ui.page==='muscles'?'Find an exercise or muscle…':'Find an exercise in your stations…';
-    $('#filters').innerHTML=['all','upper','lower','core'].map(f=>`<button class="filter ${ui.filter===f?'selected':''}" data-action="filter" data-filter="${f}" aria-pressed="${ui.filter===f}">${f==='all'?'All muscles':f==='upper'?'Upper body':f==='lower'?'Lower body':'Core'}</button>`).join('');
+    $('#filters').hidden=ui.page!=='muscles';
+    $('#content').setAttribute('role',ui.page==='muscles'?'tabpanel':'region');
+    $('#content').setAttribute('aria-labelledby',ui.page==='muscles'?`tab-${ui.filter}`:'page-title');
+    $('#filters').innerHTML=ui.page==='muscles'?['upper','lower'].map(f=>`<button role="tab" class="filter ${ui.filter===f?'selected':''}" data-action="filter" data-filter="${f}" aria-selected="${ui.filter===f}" tabindex="${ui.filter===f?'0':'-1'}" aria-controls="content" id="tab-${f}">${f.toUpperCase()}</button>`).join(''):'';
     document.querySelectorAll('[data-action=page]').forEach(b=>{b.classList.toggle('selected',b.dataset.page===ui.page);b.setAttribute('aria-current',b.dataset.page===ui.page?'page':'false');});
     const visible=filtered(state.exercises);
     if(ui.page==='muscles'){
-      $('#content').innerHTML=state.groups.map(([gid,name])=>{
+      const areas=homeGroups(state,ui.filter);
+      const renderGroup=([gid,name])=>{
         const order=currentRows.map(e=>e.id);
         const rank=e=>{const i=order.indexOf(e.parent||e.id);return i<0?100+state.exercises.findIndex(x=>x.id===(e.parent||e.id)):i;};
         const list=visible.filter(e=>e.group===gid).sort((a,b)=>rank(a)-rank(b)||Number(!!a.parent)-Number(!!b.parent));
-        if(state.hiddenGroups.includes(gid)||(!list.length&&(ui.search||ui.filter!=='all'&&state.groups.find(g=>g[0]===gid)[2]!==ui.filter)))return '';
+        if(state.hiddenGroups.includes(gid)||(!list.length&&ui.search))return '';
         const all=list,status=folderUrgency(state,state.exercises.filter(e=>e.group===gid).map(e=>e.id),today),last=groupReadiness(state,gid,today).hit;
         const done=all.filter(e=>completion(state,e.id,today).complete).length;
-        return `<details class="muscle heat-${status.level}" data-group="${gid}" ${ui.group===gid||ui.search?'open':''}><summary><span class="group-icon" aria-hidden="true">${String(state.groups.findIndex(g=>g[0]===gid)+1).padStart(2,'0')}</span><span class="group-name">${html(name)}<small>${list.length} ${list.length===1?'exercise':'exercises'} · ${status.level}${done?` · ${done} done today`:''}</small></span><button class="text-button" data-action="edit-group" data-id="${gid}" aria-label="Edit ${html(name)}">Edit</button><span class="group-last">${last?`Latest: ${last.days===0?'today':`${last.days}d ago`}`:'No recent hit'}</span><span class="chevron" aria-hidden="true">⌄</span></summary><div class="exercise-list">${list.map(exerciseRow).join('')}</div></details>`;
-      }).join('') || '<div class="empty">No matching exercises.</div>';
+        return `<details class="muscle heat-${status.level}" data-group="${gid}" ${ui.group===gid||ui.search?'open':''}><summary><span class="group-icon" aria-hidden="true">${String(state.groups.findIndex(g=>g[0]===gid)+1).padStart(2,'0')}</span><span class="group-name">${html(name)}<small>${list.length} ${list.length===1?'exercise':'exercises'}${done?` · ${done} done today`:''}</small></span><button class="text-button" data-action="edit-group" data-id="${gid}" aria-label="Edit ${html(name)}">Edit</button><span class="group-last">${last?`Latest: ${last.days===0?'today':`${last.days}d ago`}`:'No recent hit'}</span><span class="chevron" aria-hidden="true">⌄</span></summary><div class="exercise-list">${list.map(exerciseRow).join('')}</div></details>`;
+      };
+      const main=areas.main.map(renderGroup).join(''),floating=areas.floating.map(renderGroup).join('');
+      const floatIds=visible.filter(e=>areas.floating.some(g=>g[0]===e.group)).map(e=>e.id),floatStatus=folderUrgency(state,floatIds,today);
+      $('#content').setAttribute('aria-labelledby',`tab-${ui.filter}`);
+      $('#content').innerHTML=main+(floating?`<details class="floating-block heat-${floatStatus.level}" data-floating ${ui.floating||ui.search?'open':''}><summary><span class="floating-symbol" aria-hidden="true">＋</span><span class="group-name">Floating Accessories<small>Shared across Upper & Lower</small></span><span class="chevron" aria-hidden="true">⌄</span></summary><div class="floating-groups">${floating}</div></details>`:'') || '<div class="empty">No matching exercises.</div>';
+
     }else{
       $('#content').innerHTML=`<button class="new-folder" data-action="new-folder"><span>＋</span> Create station folder</button>`+state.folders.map(f=>{
         const list=f.exerciseIds.map(eid=>exerciseById(state,eid)).filter(e=>visible.some(v=>v.id===e.id));
@@ -1270,7 +1326,7 @@ function boot() {
   function currentRow(eid,index){const scope=$('#dialog').open?$('#dialog-content'):$('#content');return scope.querySelector(`[data-row="${index}"][data-id="${eid}"]`);}
   function openExercise(eid){if(ui.returnY===null)ui.returnY=window.scrollY;showModal('log',eid);}
   function finishSetView(){
-    const y=ui.returnY??window.scrollY;document.activeElement?.blur();ui.exercise=null;ui.group=null;ui.folder=null;ui.search='';$('#search').value='';
+    const y=ui.returnY??window.scrollY;document.activeElement?.blur();ui.exercise=null;ui.group=null;ui.folder=null;ui.floating=false;ui.search='';$('#search').value='';
     if($('#dialog').open)closeModal();ui.modal=null;renderAll();
     // Retain enough page height for the original pixel offset after collapsing.
     document.body.style.minHeight=`${y+window.innerHeight}px`;
@@ -1296,7 +1352,7 @@ function boot() {
     if(a==='close'){closeModal();return;}
     if(a==='back'){openExercise(ui.modal.id);return;}
     if(a==='page'){ui.page=b.dataset.page;ui.exercise=null;ui.group=null;ui.folder=null;ui.returnY=null;renderMain();return;}
-    if(a==='filter'){ui.filter=b.dataset.filter;ui.group=null;ui.folder=null;ui.exercise=null;ui.returnY=null;renderMain();return;}
+    if(a==='filter'){ui.filter=b.dataset.filter;ui.floating=false;ui.group=null;ui.folder=null;ui.exercise=null;ui.returnY=null;renderMain();return;}
     if(a==='open'){openExercise(eid);return;}
     if(a==='pin'){mutate(s=>togglePin(s,eid));return;}
     if(a==='clear-pins'){mutate(s=>{s.pinned=[];});return;}
@@ -1336,8 +1392,11 @@ function boot() {
     if(a==='plate-clear'){ui.plate.plates=[];renderModal();return;}
     if(a==='plate-apply'){if(String(ui.plate.bar).trim()===''||!Number.isFinite(Number(ui.plate.bar))||Number(ui.plate.bar)<0||Number(ui.plate.bar)>1000){error('Enter a bar / sled weight from 0 to 1,000.');return;}applyLoad(eid,Number(ui.plate.bar)+2*ui.plate.plates.reduce((n,p)=>n+p,0));return;}
   });
+  document.addEventListener('keydown',event=>{if(event.target.matches('[role=tab]')&&['ArrowLeft','ArrowRight','Home','End'].includes(event.key)){event.preventDefault();const next=event.key==='Home'?'upper':event.key==='End'?'lower':ui.filter==='upper'?'lower':'upper';document.querySelector(`[data-action=filter][data-filter=${next}]`)?.click();document.getElementById(`tab-${next}`)?.focus();}});
   document.addEventListener('keydown',event=>{if(event.target.matches('[data-point]')&&['Enter',' '].includes(event.key)){event.preventDefault();event.target.dispatchEvent(new MouseEvent('click',{bubbles:true}));}});
   $('#content').addEventListener('click',event=>{
+    const floatingSummary=event.target.closest('[data-floating] > summary');
+    if(floatingSummary){if(!floatingSummary.parentElement.open&&ui.returnY===null)ui.returnY=window.scrollY;ui.floating=!floatingSummary.parentElement.open;return;}
     const summary=event.target.closest('summary');if(!summary||event.target.closest('[data-action]'))return;const details=summary.parentElement;
     if(details.matches('[data-group]')){event.preventDefault();if(!details.open&&ui.group===null)ui.returnY=window.scrollY;ui.group=details.open?null:details.dataset.group;ui.exercise=null;renderMain();}
     if(details.matches('[data-folder]')){event.preventDefault();if(!details.open&&ui.folder===null)ui.returnY=window.scrollY;ui.folder=details.open?null:details.dataset.folder;ui.exercise=null;renderMain();}

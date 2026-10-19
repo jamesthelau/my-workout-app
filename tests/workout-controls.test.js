@@ -9,10 +9,10 @@ const finish=(s,eid)=>{for(let i=0;i<exerciseById(s,eid).sets;i++)log(s,eid,i);}
 
 test('merged accordions and Bulgarian split squat preserve original exercise IDs',()=>{
   const s=initialState();
-  assert.equal(GROUPS.length,11);
+  assert.equal(GROUPS.length,12);
   for(const eid of ['e1','e2','e3'])assert.equal(exerciseById(s,eid).group,'chest');
   for(const eid of ['e26','e27'])assert.equal(exerciseById(s,eid).group,'core');
-  assert.equal(exerciseById(s,'e23').group,'posterior-chain');for(const eid of ['e24','e25'])assert.equal(exerciseById(s,eid).group,'calves-adductors');
+  assert.equal(exerciseById(s,'e23').group,'posterior-chain');assert.equal(exerciseById(s,'e24').group,'calves-adductors');assert.equal(exerciseById(s,'e25').group,'calves');
   const split=exerciseById(s,'e28');assert.equal(split.group,'quads');assert.equal(split.name,'Bulgarian Split Squat');
   assert.equal(split.sets,3);assert.equal(split.targetCooldown,7);assert.equal(split.tier,2);
 });
