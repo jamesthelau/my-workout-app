@@ -9,7 +9,7 @@ function finish(s,eid,date=day){for(let i=0;i<exerciseById(s,eid).sets;i++)log(s
 test('variation logs toggle the root complementary pair and reset both after six quiet midnights',()=>{
  const s=initialState();addAlternate(s,'e1','Alternate press',{},'alt');
  log(s,'alt');for(const id of ['e1','alt'])assert.equal(urgency(s,id,day).level,'cold');
- log(s,'e16',0,'2026-10-23');assert.equal(urgency(s,'alt','2026-10-23').level,'due');
+ log(s,'e16',0,'2026-10-23');assert.equal(urgency(s,'alt','2026-10-23').level,'recovering');
  assert.equal(urgency(s,'e16','2026-10-28').level,'cold');
  for(const id of ['e1','alt','e16'])assert.equal(urgency(s,id,'2026-10-29').level,'due');
  unlogSet(s,'e16',0,'2026-10-23');assert.equal(urgency(s,'e1','2026-10-23').level,'cold');

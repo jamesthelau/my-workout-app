@@ -104,3 +104,10 @@ html{overflow-anchor:none;scroll-behavior:auto}.fatigue-progress{appearance:none
 .supplement-detail details {margin-top:18px;font-size:13px;line-height:1.6}
 .supplement-detail details p {margin-top:12px}
 .supplement-optional {display:block;color:#aebda0;margin-top:4px;font-size:12px}
+/* Recovery is a planning state; the exercise remains available to log. */
+.exercise.heat-recovering {--heat:#ac8952;box-shadow:none;border-color:#393329}
+.exercise.heat-recovering .exercise-name {color:#bcb4a8}
+.heat-recovering .state-dot {background:#ac8952;box-shadow:none}
+.heat-recovering .heat-label {color:#ac8952}
+.recovery-note {display:inline-block;color:#c4a16c;font-size:11px;line-height:1.5;white-space:normal}
+.pin-shell.heat-recovering {box-shadow:none;border-color:#393329}

@@ -38,7 +38,7 @@ test('blank numeric autofill copies the prior weight without repeating prior sub
 test('pair toggles on shifted days and only six days since its most recent activity resets both',()=>{
  for(const offset of [3,4,6]){
   const s=initialState();log(s,'e1',0,'2026-10-01T23:59:00-07:00');log(s,'e16',0,`2026-10-0${1+offset}T00:01:00-07:00`);
-  assert.equal(level(s,'e1',`2026-10-0${1+offset}`),'due');assert.equal(level(s,'e16',`2026-10-0${1+offset}`),'cold');
+  assert.equal(level(s,'e1',`2026-10-0${1+offset}`),'recovering');assert.equal(level(s,'e16',`2026-10-0${1+offset}`),'cold');
  }
  const s=initialState();log(s,'e1',0,'2026-10-01T12:00:00-07:00');log(s,'e1',0,'2026-10-06T12:00:00-07:00');
  assert.equal(level(s,'e1','2026-10-11'),'cold');assert.equal(level(s,'e16','2026-10-11'),'due');
@@ -51,18 +51,18 @@ test('six-day inactivity fully forgets the old complex cycle when training resum
 });
 test('delts folder completes after one full lateral choice and the full due reverse pec deck',()=>{
  const s=initialState();finish(s,'e9');assert.equal(folderUrgency(s,delts,day).level,'due');
- log(s,'e11',0);log(s,'e11',1);assert.equal(folderUrgency(s,delts,day).level,'due');log(s,'e11',2);
- assert.deepEqual(folderUrgency(s,delts,day),{ratio:0,level:'cold',dailyComplete:true});assert.equal(level(s,'e10'),'due');
- assert.equal(folderUrgency(s,delts,'2026-10-21').level,'due');
- unlogSet(s,'e11',2,day);assert.equal(folderUrgency(s,delts,day).level,'due');
+ log(s,'e11',0);log(s,'e11',1);assert.equal(folderUrgency(s,delts,day).level,'cold');log(s,'e11',2);
+ assert.deepEqual(folderUrgency(s,delts,day),{ratio:0,level:'cold',dailyComplete:true});assert.equal(level(s,'e10'),'recovering');
+ assert.equal(folderUrgency(s,delts,'2026-10-21').level,'cold');
+ unlogSet(s,'e11',2,day);assert.equal(folderUrgency(s,delts,day).level,'cold');
 });
 test('recent standalone isolation is not required today; an optionally started exercise must still be finished',()=>{
  const s=initialState();finish(s,'e11','2026-10-19T12:00:00-07:00');finish(s,'e9');assert.equal(folderUrgency(s,delts,day).dailyComplete,true);
- log(s,'e11',0);assert.equal(folderUrgency(s,delts,day).level,'due');log(s,'e11',1);log(s,'e11',2);assert.equal(folderUrgency(s,delts,day).dailyComplete,true);
- log(s,'e10',0);assert.equal(folderUrgency(s,delts,day).level,'due');
+ log(s,'e11',0);assert.equal(folderUrgency(s,delts,day).level,'cold');log(s,'e11',1);log(s,'e11',2);assert.equal(folderUrgency(s,delts,day).dailyComplete,true);
+ log(s,'e10',0);assert.equal(folderUrgency(s,delts,day).level,'cold');
 });
 test('posterior folder needs the entire two-exercise side plus the due leg curl',()=>{
- const s=initialState(),ids=['e21','e31','e23','e22'];finish(s,'e22');finish(s,'e31');assert.equal(folderUrgency(s,ids,day).level,'due');finish(s,'e23');assert.equal(folderUrgency(s,ids,day).dailyComplete,true);assert.equal(level(s,'e21'),'due');
+ const s=initialState(),ids=['e21','e31','e23','e22'];finish(s,'e22');finish(s,'e31');assert.equal(folderUrgency(s,ids,day).level,'due');finish(s,'e23');assert.equal(folderUrgency(s,ids,day).dailyComplete,true);assert.equal(level(s,'e21'),'recovering');
  const a=initialState();finish(a,'e21');finish(a,'e22');assert.equal(folderUrgency(a,ids,day).dailyComplete,true);
 });
 test('custom alternates fill their workout slot, cooldown reset releases the daily completion override',()=>{

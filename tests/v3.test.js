@@ -22,7 +22,7 @@ test('exercise heat honors explicit 3-day and 7-day cycles',()=>{
 });
 test('complementary parents show the due counterpart; unrelated due muscles still signal',()=>{
  const s=initialState();logSet(s,'e12',0,{weight:25,reps:8},at,'incline');logSet(s,'e13',0,{weight:25,reps:8},new Date('2026-10-12T12:00:00'),'preacher');
- assert.equal(urgency(s,'e12','2026-10-12').level,'due');assert.equal(folderUrgency(s,['e12','e13','e14'],'2026-10-12').level,'due');
+ assert.equal(urgency(s,'e12','2026-10-12').level,'recovering');assert.equal(folderUrgency(s,['e12','e13','e14'],'2026-10-12').level,'due');
  logSet(s,'e24',0,{weight:25,reps:8},at,'adductors');logSet(s,'e25',0,{weight:25,reps:8},new Date('2026-10-12T12:00:00'),'calves');assert.equal(folderUrgency(s,['e24','e25'],'2026-10-12').level,'due');
 });
 

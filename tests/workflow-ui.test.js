@@ -39,7 +39,8 @@ test('UI event flow auto-fills, collapses, restores captured Y, pins and renders
  assert.ok(coreLogged.pinned.includes('e26'));assert.ok(!nodes.get('#content').innerHTML.includes('data-floating open'));
  click('filter',{filter:'lower'});
  assert.match(nodes.get('#content').innerHTML,/<details class="exercise heat-cold[^>]*data-exercise="e26"/);
- assert.match(nodes.get('#content').innerHTML,/<details class="exercise heat-due[^>]*data-exercise="e27"/);
+ assert.match(nodes.get('#content').innerHTML,/<details class="exercise heat-recovering[^>]*data-exercise="e27"/);
+ assert.match(nodes.get('#content').innerHTML,/Complementary hit today · resting/);
  assert.equal(JSON.parse(raw).history.length,coreLogged.history.length);
  click('page',{page:'stations'});assert.equal(nodes.get('#filters').hidden,true);assert.match(nodes.get('#content').innerHTML,/Cable Station/);
  click('page',{page:'muscles'});assert.equal(nodes.get('#filters').hidden,false);
@@ -50,12 +51,12 @@ test('UI event flow auto-fills, collapses, restores captured Y, pins and renders
  assert.equal(JSON.parse(raw).history.at(-1).weight,275);assert.equal(JSON.parse(raw).history.at(-1).weightNote,'(Felt heavy <script>)');
  assert.match(nodes.get('#content').innerHTML,/<details class="muscle heat-cold" data-group="side-delts" [^>]*>/);
  assert.ok(!nodes.get('#content').innerHTML.includes('data-group="side-delts" open'));
- assert.match(nodes.get('#content').innerHTML,/<details class="exercise heat-due[^>]*data-exercise="e10"/);
+ assert.match(nodes.get('#content').innerHTML,/<details class="exercise heat-recovering[^>]*data-exercise="e10"/);
  assert.match(nodes.get('#content').innerHTML,/Done today/);
  assert.ok(!JSON.parse(raw).timers.e11);assert.ok(!JSON.parse(raw).pinned.includes('e11'));
  click('graph',{id:'e11'});assert.match(nodes.get('#dialog-content').innerHTML,/Felt heavy &lt;script&gt;/);assert.ok(!nodes.get('#dialog-content').innerHTML.includes('<script>'));
  click('close');click('set',{id:'e11',index:'2'});
- assert.match(nodes.get('#content').innerHTML,/<details class="muscle heat-due" data-group="side-delts"/);
+ assert.match(nodes.get('#content').innerHTML,/<details class="muscle heat-cold" data-group="side-delts"/);
  // Add and switch a variation through the real form and change handlers.
  click('filter',{filter:'upper'});click('open',{id:'e1'});click('alternate',{id:'e1'});
  const altForm={id:'alternate-form',dataset:{parent:'e1'},values:{name:'Test alternate press',sets:'3',reps:'8–12',rir:'1'}};
