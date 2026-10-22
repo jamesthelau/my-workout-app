@@ -50,13 +50,13 @@ test('logging in a folder and muscle view uses same ID without duplication',()=>
   exerciseById(s,same).seat='Chair 2';assert.equal(exerciseById(s,fromFolder).seat,'Chair 2');
   s.folders=s.folders.filter(f=>f.id!=='station1');assert.equal(s.history.length,3);validateState(s);
 });
-test('alternate independently tracks records, seat, points and cooldown',()=>{
+test('alternate keeps independent records and seat but shares slot points',()=>{
   const s=initialState();exerciseById(s,'e22').seat='Chair 2';
   const alt=addAlternate(s,'e22','Lying Leg Curl',{},'lying-curl');
   assert.equal(alt.parent,'e22');assert.equal(alt.seat,'');assert.equal(alt.tier,3);
   finish(s,'e22');assert.equal(readiness(s,alt.id,localDay(tuesday)),null);
   assert.equal(previousSession(s,alt.id,localDay(tuesday)).length,0);
-  finish(s,alt.id);assert.equal(fatigue(s,localDay(monday)).score,2);
+  finish(s,alt.id);assert.equal(fatigue(s,localDay(monday)).score,1);
   assert.equal(previousSession(s,alt.id,localDay(tuesday)).length,3);validateState(s);
 });
 test('reset cooldowns preserves every record, seat, partial flag, graph and today’s score',()=>{

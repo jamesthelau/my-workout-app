@@ -700,7 +700,7 @@ export function ordinal(day) {
 }
 export const daysBetween = (earlier,later) => Math.max(0,ordinal(later)-ordinal(earlier));
 export function initialState() {
-  return {version:2,revision:9,groups:copy(GROUPS),hiddenGroups:[],exercises:copy(SEED),history:[],drafts:{},plans:{},epoch:0,fatigueResets:{},
+  return {version:2,revision:10,groups:copy(GROUPS),hiddenGroups:[],exercises:copy(SEED),history:[],drafts:{},plans:{},epoch:0,fatigueResets:{},
     folders:[{id:'cables',name:'Cable Station',exerciseIds:['e2','e6','e10','e15','e17','e18','e26','e5']}],
     pinned:[],timers:{},clock:{startedAt:null,elapsed:0,ended:false},
     settings:{unit:'lbs',sound:true,haptics:true,volume:0.6,hapticIntensity:0.5},rest:{}};
@@ -714,9 +714,38 @@ export function completion(s,exerciseId,day=localDay()) {
   const target=targetSets(s,exerciseId,day),done=dailyRecords(s,exerciseId,day).length;
   return {target,done,complete:done===target};
 }
+// Variations retain their record IDs; planning and points belong to the root slot.
+export const slotId = (s,eid) => exerciseById(s,eid).parent || eid;
+export const slotVariants = (s,eid) => s.exercises.filter(e=>slotId(s,e.id)===slotId(s,eid));
+export function slotCompletion(s,eid,day=localDay(),epochOnly=false){
+  const root=slotId(s,eid),variants=slotVariants(s,root);
+  const records=variants.flatMap(e=>dailyRecords(s,e.id,day)).filter(r=>!epochOnly||r.epoch===s.epoch);
+  const target=targetSets(s,root,day),done=records.length;
+  const full=variants.some(e=>records.filter(r=>r.exerciseId===e.id).length>=targetSets(s,e.id,day));
+  return {target:full&&done<target?done:target,done,complete:full||done>=target};
+}
+export function slotReadiness(s,eid,day=localDay()){
+  return slotVariants(s,eid).map(e=>readiness(s,e.id,day)).filter(Boolean).sort((a,b)=>b.at.localeCompare(a.at))[0]||null;
+}
+export function selectVariation(s,eid){
+  const e=exerciseById(s,eid),root=exerciseById(s,slotId(s,eid));
+  if(e.archived||root.archived)throw Error('Choose an active variation.');
+  (s.selectedVariants ||= {})[root.id]=eid;
+}
+export function visibleSlots(s,exercises,query=''){
+  const roots=[...new Set(exercises.map(e=>slotId(s,e.id)))];
+  return roots.map(root=>{
+    const base=exerciseById(s,root);if(base.archived||s.hiddenGroups.includes(base.group))return null;
+    const variants=slotVariants(s,root).filter(e=>!e.archived);
+    const matches=variants.filter(e=>!query||`${e.name} ${s.groups.find(g=>g[0]===base.group)[1]}`.toLowerCase().includes(query));
+    if(!matches.length)return null;
+    const selected=matches.find(e=>e.id===s.selectedVariants?.[root])||matches.find(e=>e.id===root)||matches[0];
+    return {...selected,group:base.group,tier:base.tier,restCycle:base.restCycle};
+  }).filter(Boolean);
+}
 export function fatigue(s,day=localDay()) {
-  const excluded=new Set(s.fatigueResets[day]||[]);
-  const complete=s.exercises.filter(e=>!excluded.has(e.id)&&completion(s,e.id,day).complete);
+  const excluded=new Set((s.fatigueResets[day]||[]).map(eid=>slotId(s,eid)));
+  const complete=s.exercises.filter(e=>!e.parent&&!excluded.has(e.id)&&slotCompletion(s,e.id,day).complete);
   return {score:complete.reduce((n,e)=>n+points(e),0),count:complete.length};
 }
 export function readiness(s,exerciseId,day=localDay()) {
@@ -731,7 +760,7 @@ export function readinessStatus(s,exerciseId,day=localDay()) {
 export function migrateState(input) {
   // Validate legacy data first; preserve exercise IDs and every historical record.
   const s=copy(validateState(input,{allowMissingCooldown:true,legacy:true}));
-  if(s.revision>=9)return validateState(s);
+  if(s.revision>=9){s.revision=10;return validateState(s);}
   if(s.revision===8)return updateV4(s);
   if(s.revision===7)return updateExerciseList(s);
   if(s.revision===6)return updateV3(s);
@@ -845,7 +874,7 @@ function updateV4(s){
   const wrist=exerciseById(s,'e30');
   if(!wrist)s.exercises.push(copy(wristExtension));
   else {if(wrist.archived){wrist.restCycle=3;wrist.targetCooldown=3;}wrist.archived=false;if(wrist.name==='Cable Wrist Extension')wrist.name=wristExtension.name;if(!wrist.rir)wrist.rir='0';if(wrist.rest[0]===60&&wrist.rest[1]===90)wrist.rest=[90,90];}
-  s.revision=9;return validateState(s);
+  s.revision=10;return validateState(s);
 }
 export function fatigueGoal(s){
   const active=s.exercises.filter(e=>!e.archived&&!e.parent&&!s.hiddenGroups.includes(e.group));
@@ -853,42 +882,71 @@ export function fatigueGoal(s){
   const weekly3=active.filter(e=>e.restCycle===3).reduce((n,e)=>n+2*points(e),0);
   return {weekly7,weekly3,weekly:weekly7+weekly3,daily:Math.ceil((weekly7+weekly3)/4)};
 }
+function activePair(s,eid){
+  const available=id=>{const e=exerciseById(s,id);return e&&!e.archived&&!s.hiddenGroups.includes(e.group)&&e.restCycle===7;};
+  return COMPLEMENTARY.find(sides=>sides.flat().includes(eid)&&sides.flat().every(available));
+}
 export function urgency(s,eid,day=localDay()){
-  const e=exerciseById(s,eid),cycle=e.restCycle;
-  const hit=readiness(s,eid,day);
+  eid=slotId(s,eid);
+  const e=exerciseById(s,eid),cycle=e.restCycle,hit=slotReadiness(s,eid,day);
+  const pair=cycle===7&&activePair(s,eid);
   let due=!hit||hit.days>=cycle;
-  const available=id=>{const x=exerciseById(s,id);return x&&!x.archived&&!s.hiddenGroups.includes(x.group)&&x.restCycle===7;};
-  const pair=cycle===7&&COMPLEMENTARY.find(sides=>sides.flat().includes(eid)&&sides.flat().every(available));
-  if(pair&&hit&&hit.days<7){
-    // Reconstruct latest events without extra persisted flags; insertion order breaks ties.
-    const latest=new Map();
+  if(pair){
+    const latest=new Map(),ids=new Set(pair.flat());
     const after=(a,b)=>!!a&&(!b||a.at>b.at||a.at===b.at&&a.order>b.order);
-    s.history.forEach((r,order)=>{
-      if(r.epoch!==s.epoch||r.day>day||!pair.flat().includes(r.exerciseId))return;
-      const event={at:Date.parse(r.at),order};
-      if(after(event,latest.get(r.exerciseId)))latest.set(r.exerciseId,event);
-    });
-    const own=latest.get(eid),opposite=pair.find(side=>!side.includes(eid));
-    due=opposite.every(id=>after(latest.get(id),own));
+    let last=null;
+    const events=s.history.map((r,order)=>({...r,exerciseId:slotId(s,r.exerciseId),order})).filter(r=>r.epoch===s.epoch&&r.day<=day&&ids.has(r.exerciseId)).sort((a,b)=>Date.parse(a.at)-Date.parse(b.at)||a.order-b.order);
+    for(const r of events){
+      const event={at:Date.parse(r.at),day:r.day,order:r.order};
+      if(last&&daysBetween(last.day,event.day)>=6)latest.clear();
+      latest.set(r.exerciseId,event);last=event;
+    }
+    // Six quiet calendar days reset the whole pair, not each exercise separately.
+    if(!last||daysBetween(last.day,day)>=6)due=true;
+    else {
+      const own=latest.get(eid),opposite=pair.find(side=>!side.includes(eid));
+      due=!own||opposite.every(id=>after(latest.get(id),own));
+    }
   }
   return {hit,ratio:due?1:0,cycle,level:due?'due':'cold',paired:!!pair};
 }
 export function folderUrgency(s,ids,day=localDay()){
-  const active=s.exercises.filter(e=>!e.archived&&!s.hiddenGroups.includes(e.group));
-  const members=active.filter(e=>ids.includes(e.id));
-  const due=members.some(e=>urgency(s,e.id,day).level==='due');
-  return {ratio:due?1:0,level:due?'due':'cold'};
+  const wanted=new Set(ids.map(eid=>slotId(s,eid)));
+  const members=s.exercises.filter(e=>wanted.has(slotId(s,e.id))&&!exerciseById(s,slotId(s,e.id)).archived&&!s.hiddenGroups.includes(exerciseById(s,slotId(s,e.id)).group));
+  const beforeToday={...s,history:s.history.filter(r=>r.day!==day)};
+  const started=eid=>dailyRecords(s,eid,day).some(r=>r.epoch===s.epoch);
+  const finished=eid=>dailyRecords(s,eid,day).filter(r=>r.epoch===s.epoch).length===targetSets(s,eid,day);
+  const roots=[...new Set(members.map(e=>e.parent||e.id))],visited=new Set();
+  const variants=root=>members.filter(e=>(e.parent||e.id)===root).map(e=>e.id);
+  const rootDone=root=>slotCompletion(s,root,day,true).complete;
+  let outstanding=false,required=0;
+  for(const root of roots){
+    if(visited.has(root))continue;
+    const pair=activePair(s,root);
+    const sides=pair?pair.map(side=>side.filter(id=>roots.includes(id))).filter(side=>side.length):[[root]];
+    const slotRoots=sides.flat();slotRoots.forEach(id=>visited.add(id));
+    const slotIds=slotRoots.flatMap(variants);
+    const needed=slotIds.some(started)||slotRoots.some(root=>{const eid=members.some(e=>e.id===root)?root:variants(root)[0];return urgency(beforeToday,eid,day).level==='due';});
+    if(!needed)continue;
+    required++;
+    const done=sides.some(side=>side.every(rootDone));
+    const unfinished=slotRoots.some(root=>variants(root).some(started)&&!rootDone(root));
+    if(!done||unfinished)outstanding=true;
+  }
+  const dailyComplete=required>0&&!outstanding&&roots.some(rootDone);
+  return {ratio:outstanding?1:0,level:outstanding?'due':'cold',dailyComplete};
 }
 export function activeIds(s){return [...new Set([...s.pinned,...Object.keys(s.timers)])];}
 export function completeWithHistory(s,eid,index,input,now=new Date(),recordId=id()){
   const prior=previousSet(s,eid,index,localDay(now));const values={...input};
   for(const field of ['weight','reps'])if(String(values[field]??'').trim()===''){
     if(!prior)throw Error('Enter weight and reps for your first session.');
-    values[field]=field==='weight'?inUnit(prior,s.settings.unit):prior.reps;
+    values[field]=field==='weight'?(prior.weight===null?prior.weightNote:inUnit(prior,s.settings.unit)):prior.reps;
   }
   const record=logSet(s,eid,index,values,now,recordId);
-  s.pinned=s.pinned.filter(id=>id!==eid);
-  if(!completion(s,eid,localDay(now)).complete){s.pinned.push(eid);s.pinned=s.pinned.slice(-3);}
+  s.pinned=s.pinned.filter(id=>slotId(s,id)!==slotId(s,eid));
+  selectVariation(s,eid);
+  if(!slotCompletion(s,eid,localDay(now)).complete){s.pinned.push(eid);s.pinned=s.pinned.slice(-3);}
   return record;
 }
 export function vibrationPattern(intensity,alarm=false){
@@ -910,7 +968,12 @@ export function previousSet(s,exerciseId,index,day=localDay()) {
   return session.find(r=>r.index===index) || session.at(-1) || null;
 }
 export function inUnit(record,unit) {
+  if(record.weight===null)return null;
   return record.unit===unit?record.weight:Math.round(record.weight*(unit==='kg'?1/2.2046226218:2.2046226218)*100)/100;
+}
+export function weightText(record,unit=record.unit){
+  const weight=inUnit(record,unit);
+  return [weight===null?'':String(weight),record.weightNote||''].filter(Boolean).join(' ');
 }
 export function writeDraft(s,exerciseId,index,field,value,day=localDay()) {
   const key=draftKey(day,exerciseId,index);
@@ -920,41 +983,86 @@ export function writeDraft(s,exerciseId,index,field,value,day=localDay()) {
 export function copyPrevious(s,exerciseId,index,day=localDay()) {
   const previous=previousSet(s,exerciseId,index,day);
   if(!previous)throw Error('No earlier session to copy yet.');
-  s.drafts[draftKey(day,exerciseId,index)]={weight:String(inUnit(previous,s.settings.unit)),reps:String(previous.reps),partial:false};
+  s.drafts[draftKey(day,exerciseId,index)]={weight:weightText(previous,s.settings.unit),reps:String(previous.reps),partial:false};
 }
-export function parseWeight(value){
+export function copySetAbove(s,eid,index,day=localDay()) {
+  if(index<1||dailyRecords(s,eid,day).some(r=>r.index===index))return false;
+  const key=draftKey(day,eid,index),draft=s.drafts[key];
+  if(draft&&(draft.weight.trim()||draft.reps.trim()||(draft.drops||[]).some(d=>d.weight.trim()||d.reps.trim())))return false;
+  const record=dailyRecords(s,eid,day).find(r=>r.index===index-1);
+  const above=record?{weight:weightText(record,s.settings.unit),reps:String(record.reps)}:s.drafts[draftKey(day,eid,index-1)];
+  if(!above||!above.weight.trim()||!above.reps.trim())return false;
+  s.drafts[key]={...draft,weight:above.weight,reps:above.reps,partial:false};return true;
+}
+export function editDrop(s,eid,index,action,round=0,field='',value='',day=localDay()) {
+  if(dailyRecords(s,eid,day).some(r=>r.index===index))throw Error('Uncheck the set to edit its drop rounds.');
+  const draft=s.drafts[draftKey(day,eid,index)] ||= {weight:'',reps:'',partial:false};
+  const drops=draft.drops ||= [];
+  if(action==='add')drops.push({weight:'',reps:''});
+  else if(action==='remove')drops.splice(round,1);
+  else if(drops[round]&&['weight','reps'].includes(field))drops[round][field]=value;
+}
+function parseDrops(drops=[]) {
+  if(!Array.isArray(drops))throw Error('Invalid drop rounds.');
+  return drops.filter(d=>String(d.weight??'').trim()||String(d.reps??'').trim()).map(d=>{
+    const parsed=parseWeightEntry(d.weight);
+    if(!Number.isInteger(Number(d.reps))||Number(d.reps)<1||Number(d.reps)>999)throw Error('Enter weight and whole-number reps for each drop round.');
+    return {...parsed,reps:Number(d.reps)};
+  });
+}
+export function parseWeightEntry(value){
   if(typeof value==='number'){
-    if(Number.isFinite(value)&&value>=0&&value<=10000)return value;
+    if(Number.isFinite(value)&&value>=0&&value<=10000)return {weight:value,weightNote:''};
     throw Error('Total weight must be from 0 to 10,000.');
   }
-  if(typeof value!=='string'||!value.trim()||value.length>200)throw Error('Enter a weight or plate shorthand, e.g. 45x2, 25.');
-  const number='(?:\\d+(?:\\.\\d+)?|\\.\\d+)';
-  const segment=new RegExp(`^\\s*(${number})\\s*(?:[xX*]\\s*(${number})\\s*)?$`);
-  let total=0;
-  for(const block of value.split(',')){
-    const match=block.match(segment);
-    if(!match)throw Error('Use numbers separated by commas, with x or * for multiplication.');
-    const amount=Number(match[1])*(match[2]===undefined?1:Number(match[2]));
-    if(!Number.isFinite(amount))throw Error('Total weight must be from 0 to 10,000.');
-    total+=amount;
+  if(typeof value!=='string'||!value.trim()||value.length>200)throw Error('Enter a load, plate math or a text label.');
+  const text=value.trim();
+  if(/^0[xX][0-9a-f]+$/i.test(text))throw Error('Use decimal weights or plate math.');
+  const number=/^(?:\d+(?:\.\d+)?|\.\d+)/;
+  if(!number.test(text)){
+    if(/^[+\-.,*\d]/.test(text))throw Error('Check the weight calculation.');
+    return {weight:null,weightNote:text};
   }
-  if(!Number.isFinite(total)||total>10000)throw Error('Total weight must be from 0 to 10,000.');
-  return Math.round(total*1e8)/1e8;
+  let rest=text,total=0;
+  while(true){
+    const left=rest.match(number);if(!left)throw Error('Add a number after the comma.');
+    let amount=Number(left[0]);rest=rest.slice(left[0].length).trimStart();
+    if(/^(?:[xX](?=\s|[\d.]|$)|\*)/.test(rest)){
+      rest=rest.slice(1).trimStart();const right=rest.match(number);
+      if(!right)throw Error('Add a number after x or *.');
+      amount*=Number(right[0]);rest=rest.slice(right[0].length).trimStart();
+    }
+    total+=amount;
+    if(!Number.isFinite(total)||total>10000)throw Error('Total weight must be from 0 to 10,000.');
+    if(rest.startsWith(',')){
+      const next=rest.slice(1).trimStart();
+      if(number.test(next)){rest=next;continue;}
+      if(!next||/^[,*+\-./\d]/.test(next))throw Error('Add a number after the comma.');
+      rest=next;
+    }
+    if(/^(?:[xX](?=\s|[\d.]|$)|[*+\/;\d.]|-(?=\s*[\d.]|$))/.test(rest)||/^e\d/i.test(rest))throw Error('Use commas to add and one x or * per block.');
+    return {weight:Math.round(total*1e8)/1e8,weightNote:rest.trim()};
+  }
 }
+export function parseWeight(value){return parseWeightEntry(value).weight;}
 export function logSet(s,exerciseId,index,input,now=new Date(),recordId=id()) {
   const exercise=exerciseById(s,exerciseId),day=localDay(now),target=targetSets(s,exerciseId,day);
   if(!exercise||!Number.isInteger(index)||index<0||index>=target)throw Error('This set is outside the daily target.');
   if(dailyRecords(s,exerciseId,day).some(r=>r.index===index))throw Error('This set is already logged.');
   const {weight,reps,partial=false}=input;
-  const totalWeight=parseWeight(weight);
+  const parsed=parseWeightEntry(weight);
   if(String(reps).trim()===''||!Number.isInteger(Number(reps))||Number(reps)<1||Number(reps)>999)throw Error('Enter whole-number reps from 1 to 999.');
-  const record={id:recordId,exerciseId,index,day,at:now.toISOString(),weight:totalWeight,reps:Number(reps),unit:s.settings.unit,partial:!!partial,epoch:s.epoch};
+  const record={id:recordId,exerciseId,index,day,at:now.toISOString(),weight:parsed.weight,...(parsed.weightNote?{weightNote:parsed.weightNote}:{}),reps:Number(reps),unit:s.settings.unit,partial:!!partial,epoch:s.epoch};
+  const drops=parseDrops(input.drops);if(drops.length)record.drops=drops;
   s.history.push(record);delete s.drafts[draftKey(day,exerciseId,index)];
   s.plans[dayKey(day,exerciseId)]=target;
   const seconds=s.rest[exerciseId] || (exercise.rest[0]+exercise.rest[1])/2;
-  if(completion(s,exerciseId,day).complete){
-    delete s.timers[exerciseId];s.pinned=s.pinned.filter(eid=>eid!==exerciseId);
-  }else s.timers[exerciseId]={end:now.getTime()+seconds*1000,duration:seconds,recordId};
+  if(slotCompletion(s,exerciseId,day).complete){
+    for(const e of slotVariants(s,exerciseId))delete s.timers[e.id];s.pinned=s.pinned.filter(eid=>slotId(s,eid)!==slotId(s,exerciseId));
+  }else {
+    for(const e of slotVariants(s,exerciseId))delete s.timers[e.id];
+    s.timers[exerciseId]={end:now.getTime()+seconds*1000,duration:seconds,recordId};
+  }
   if(s.clock.ended||s.clock.startedAt===null&&s.clock.elapsed===0)startWorkout(s,now.getTime());
   return record;
 }
@@ -962,7 +1070,7 @@ export function unlogSet(s,exerciseId,index,day=localDay()) {
   const record=dailyRecords(s,exerciseId,day).find(r=>r.index===index);
   if(!record)return;
   s.history=s.history.filter(r=>r.id!==record.id);
-  s.drafts[draftKey(day,exerciseId,index)]={weight:String(inUnit(record,s.settings.unit)),reps:String(record.reps),partial:record.partial};
+  s.drafts[draftKey(day,exerciseId,index)]={weight:weightText(record,s.settings.unit),reps:String(record.reps),partial:record.partial,...(record.drops?{drops:record.drops.map(d=>({weight:weightText({...d,unit:record.unit},s.settings.unit),reps:String(d.reps)}))}:{})};
   if(s.timers[exerciseId]?.recordId===record.id)delete s.timers[exerciseId];
 }
 export function changeTarget(s,exerciseId,target,day=localDay()) {
@@ -979,7 +1087,7 @@ export function addAlternate(s,parentId,name,{tier,sets,reps}={},newId=id()) {
   if(tier!==undefined&&(!Number.isInteger(tier)||tier<1||tier>3))throw Error('Choose a tier from 1 to 3.');
   if(sets!==undefined&&(!Number.isInteger(sets)||sets<1||sets>10))throw Error('Choose 1–10 sets.');
   if(reps!==undefined&&(typeof reps!=='string'||!reps.trim()||reps.length>30))throw Error('Enter a rep range.');
-  const exercise={...copy(parent),id:newId,parent:parent.parent||parent.id,name:name.trim(),seat:'',tier:tier||parent.tier,sets:sets||parent.sets,reps:reps||parent.reps};
+  const exercise={...copy(parent),id:newId,parent:parent.parent||parent.id,name:name.trim(),seat:'',tier:exerciseById(s,parent.parent||parent.id).tier,sets:sets||parent.sets,reps:reps||parent.reps};
   s.exercises.push(exercise);return exercise;
 }
 export function setFolder(s,folderId,name,exerciseIds) {
@@ -992,17 +1100,18 @@ export function setFolder(s,folderId,name,exerciseIds) {
 }
 export function togglePin(s,exerciseId) {
   if(s.pinned.includes(exerciseId)){s.pinned=s.pinned.filter(eid=>eid!==exerciseId);return;}
+  s.pinned=s.pinned.filter(eid=>slotId(s,eid)!==slotId(s,exerciseId));
   if(s.pinned.length===3)throw Error('Three exercises are pinned. Unpin one to make room.');
   s.pinned.push(exerciseId);
 }
 export function resetCooldowns(s) {s.epoch++;}
 export function resetDailyFatigue(s,day=localDay()) {
-  const completed=s.exercises.filter(e=>completion(s,e.id,day).complete).map(e=>e.id);
+  const completed=s.exercises.filter(e=>!e.parent&&slotCompletion(s,e.id,day).complete).map(e=>e.id);
   s.fatigueResets[day]=[...new Set([...(s.fatigueResets[day]||[]),...completed])];
 }
 export function changeUnits(s,unit) {
   if(unit===s.settings.unit)return;
-  const conversions=Object.values(s.drafts).filter(d=>d.weight.trim()!=='').map(d=>[d,String(inUnit({weight:parseWeight(d.weight),unit:s.settings.unit},unit))]);
+  const conversions=Object.values(s.drafts).flatMap(d=>[d,...(d.drops||[])]).filter(d=>d.weight.trim()!=='').map(d=>[d,weightText({...parseWeightEntry(d.weight),unit:s.settings.unit},unit)]);
   for(const [draft,weight] of conversions)draft.weight=weight;
   s.settings.unit=unit;
 }
@@ -1018,6 +1127,12 @@ export function endWorkout(s,now=Date.now()) {
 export function graphSeries(s,exerciseId,metric='volume',unit=s.settings.unit) {
   const grouped=new Map();
   for(const record of s.history.filter(r=>r.exerciseId===exerciseId)){
+    if(metric==='volume'){
+      const rounds=[record,...(record.drops||[]).map(d=>({...d,unit:record.unit}))];
+      for(const r of rounds)if(r.weight!==null)grouped.set(record.day,(grouped.get(record.day)||0)+inUnit(r,unit)*r.reps);
+      continue;
+    }
+    if(record.weight===null)continue;
     if(metric==='e1rm'&&(record.partial||record.reps>12||record.weight===0))continue;
     const weight=inUnit(record,unit),value=metric==='volume'?weight*record.reps:weight*(1+record.reps/30);
     grouped.set(record.day,metric==='volume'?(grouped.get(record.day)||0)+value:Math.max(grouped.get(record.day)||0,value));
@@ -1058,7 +1173,9 @@ export function validateState(s,{allowMissingCooldown=false,legacy=false}={}) {
   for(const [key,value] of Object.entries(s.plans)){const [day,eid,...extra]=key.split('|');if(extra.length||!validDay(day)||!exercises.has(eid)||!int(value,1,10))fail();}
   const records=new Map(),cells=new Set();
   for(const r of s.history){
-    if(!obj(r)||!safeId(r.id)||records.has(r.id)||!exercises.has(r.exerciseId)||!validDay(r.day)||!Number.isFinite(Date.parse(r.at))||!int(r.index,0,9)||!finite(r.weight,0,10000)||!int(r.reps,1,999)||!['lbs','kg'].includes(r.unit)||typeof r.partial!=='boolean'||!int(r.epoch,0,s.epoch))fail();
+    if(!obj(r)||!safeId(r.id)||records.has(r.id)||!exercises.has(r.exerciseId)||!validDay(r.day)||!Number.isFinite(Date.parse(r.at))||!int(r.index,0,9)||!(finite(r.weight,0,10000)||s.revision>=10&&r.weight===null&&string(r.weightNote,200))||!int(r.reps,1,999)||!['lbs','kg'].includes(r.unit)||typeof r.partial!=='boolean'||!int(r.epoch,0,s.epoch))fail();
+    if(r.weightNote!==undefined&&!string(r.weightNote,200))fail();
+    if(r.drops!==undefined&&(!Array.isArray(r.drops)||r.drops.some(d=>!obj(d)||!(finite(d.weight,0,10000)||d.weight===null&&string(d.weightNote,200))||!int(d.reps,1,999)||d.weightNote!==undefined&&typeof d.weightNote!=='string')))fail();
     const key=draftKey(r.day,r.exerciseId,r.index);
     if(cells.has(key)||r.index>=targetSets(s,r.exerciseId,r.day))fail();
     cells.add(key);records.set(r.id,r);
@@ -1067,8 +1184,13 @@ export function validateState(s,{allowMissingCooldown=false,legacy=false}={}) {
     const [day,eid,index,...extra]=key.split('|');
     if(extra.length||!validDay(day)||!exercises.has(eid)||!/^\d$/.test(index)||Number(index)>=targetSets(s,eid,day)||cells.has(key)||!obj(d)||typeof d.weight!=='string'||d.weight.length>200||typeof d.reps!=='string'||d.reps.length>40||typeof d.partial!=='boolean')fail();
   }
+  for(const d of Object.values(s.drafts))if(d.drops!==undefined&&(!Array.isArray(d.drops)||d.drops.some(r=>!obj(r)||typeof r.weight!=='string'||r.weight.length>200||typeof r.reps!=='string'||r.reps.length>40)))fail();
   const folderIds=new Set();
   for(const f of s.folders){if(!obj(f)||!safeId(f.id)||folderIds.has(f.id)||!string(f.name,60)||!Array.isArray(f.exerciseIds)||new Set(f.exerciseIds).size!==f.exerciseIds.length||f.exerciseIds.some(eid=>!exercises.has(eid)))fail();folderIds.add(f.id);}
+  if(s.selectedVariants!==undefined){
+    if(!obj(s.selectedVariants))fail();
+    for(const [root,eid] of Object.entries(s.selectedVariants))if(!exercises.has(root)||exercises.get(root).parent!==null||!exercises.has(eid)||(exercises.get(eid).parent||eid)!==root)fail();
+  }
   if(s.pinned.length>3||new Set(s.pinned).size!==s.pinned.length||s.pinned.some(eid=>!exercises.has(eid)))fail();
   for(const [eid,t] of Object.entries(s.timers))if(!exercises.has(eid)||!obj(t)||!finite(t.end,0,8.64e15)||!finite(t.duration,1,86400)||records.get(t.recordId)?.exerciseId!==eid)fail();
   for(const [eid,n] of Object.entries(s.rest))if(!exercises.has(eid)||!int(n,15,900))fail();
@@ -1112,6 +1234,8 @@ export function editExercise(s,eid,values,day=localDay()){
   }
   if(e.rest[0]!==restMin||e.rest[1]!==restMax)delete next.rest[eid];
   Object.assign(e,{reps,tier,rest:[restMin,restMax],restCycle,targetCooldown:restCycle,seat});
+  const root=exerciseById(next,slotId(next,eid));
+  for(const variant of slotVariants(next,eid))Object.assign(variant,{tier,restCycle,targetCooldown:restCycle,group:root.group});
   validateState(next);Object.assign(s,next);
 }
 export function archiveExercise(s,eid){
@@ -1132,7 +1256,7 @@ export function archiveGroup(s,gid){
 }
 export function moveExercise(s,eid,gid){
   if(!s.groups.some(g=>g[0]===gid)||s.hiddenGroups.includes(gid))throw Error('Choose an active category.');
-  const e=exerciseById(s,eid);e.group=gid;e.parent=null;e.archived=false;
+  const e=exerciseById(s,slotId(s,eid));eid=e.id;e.group=gid;e.archived=false;
   for(const child of s.exercises.filter(x=>x.parent===eid))child.group=gid;
 }
 export function createExercise(s,gid,name,{tier=2,sets=3,reps='8–12',rest=120}={},newId=id()){
@@ -1151,10 +1275,10 @@ function boot() {
   const exactTime=at=>new Date(at).toLocaleString(undefined,{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
   const duration=seconds=>`${Math.floor(Math.max(0,seconds)/60)}:${String(Math.max(0,seconds)%60).padStart(2,'0')}`;
   const since=r=>!r?'Not hit yet':r.days===0?'Last: today':r.days===1?'Last: 1 day ago':`Last: ${r.days} days ago`;
-  const metric=r=>`${r.weight} ${r.unit} × ${r.reps}${r.partial?' + P':''}`;
+  const metric=r=>`${r.weight===null?'Text load':`${r.weight} ${r.unit}`} × ${r.reps}${r.partial?' · legacy partials':''}${r.drops?.length?` · Drops: ${r.drops.map(d=>`${d.weight===null?'Text load':d.weight+' '+r.unit} × ${d.reps}${d.weightNote?' '+html(d.weightNote):''}`).join(' / ')}`:''}${r.weightNote?` · ${html(r.weightNote)}`:''}`;
   let state=initialState(),blocked=false,unreadable=null,today=localDay(),undo=null,toastId;
   let audio=null,wake=null,wakePending=false,installPrompt=null,offline='Waiting for offline setup…';
-  const ui={page:'muscles',filter:'upper',floating:false,search:'',group:null,exercise:null,folder:null,modal:null,hardware:false,returnY:null,graph:'volume',graphPoint:null,focusSet:0,plate:{bar:45,plates:[]}};
+  const ui={page:'muscles',filter:'upper',floating:false,search:'',group:null,exercise:null,folder:null,modal:null,hardware:false,returnY:null,graph:'volume',graphPoint:null,focusSet:0,dropOpen:{},plate:{bar:45,plates:[]}};
   try{const raw=localStorage.getItem(key);if(raw){try{state=migrateState(JSON.parse(raw));if(JSON.stringify(state)!==raw)persist(state);}catch{blocked=true;unreadable=raw;warn('Saved data could not be read. It has not been overwritten. Open Settings to export the original or restore a V2 backup.');}}}
   catch{blocked=true;warn('Device storage is unavailable. Logging is disabled. Allow site storage and reopen the app.');}
   function warn(text){$('#warning').hidden=false;$('#warning').textContent=text;}
@@ -1188,7 +1312,8 @@ function boot() {
     if(!persist(next))return false;dismissUndo();state=next;if(render)renderAll();
     if(message)toast(message,canUndo?()=>{if(persist(before)){state=before;renderAll();}}:undefined);return true;
   }
-  function pips(exerciseId){const c=completion(state,exerciseId,today),records=dailyRecords(state,exerciseId,today);return `<span class="pips ${c.complete?'complete':''}" aria-label="${c.done} of ${c.target} sets"><span aria-hidden="true">${Array.from({length:c.target},(_,i)=>`<i class="${records.some(r=>r.index===i)?'done':''}"></i>`).join('')}</span><small>${c.done}/${c.target}</small></span>`;}
+  function pips(exerciseId){const c=slotCompletion(state,exerciseId,today);return `<span class="pips ${c.complete?'complete':''}" aria-label="${c.done} of ${c.target} slot sets"><span aria-hidden="true">${Array.from({length:c.target},(_,i)=>`<i class="${i<c.done?'done':''}"></i>`).join('')}</span><small>${c.done}/${c.target}</small></span>`;}
+
   function renderTop(){
     const f=fatigue(state,today),goal=fatigueGoal(state),active=activeIds(state);
     $('#top').innerHTML=`<div class="load-row"><div class="load-label"><span class="eyebrow">DAILY GOAL: ${goal.daily} PTS</span><div><strong>${f.score}<small> / ${goal.daily}</small></strong><span>${f.count} completed</span></div></div><button class="clock-button" data-action="workout" aria-label="Workout stopwatch"><span class="clock-icon">◷</span><span id="stopwatch">00:00</span><small>${state.clock.ended?'ENDED':state.clock.startedAt!==null?'WORKOUT':'START'}</small></button></div>
@@ -1198,8 +1323,8 @@ function boot() {
     ${active.length?`<div class="pin-grid">${active.map(eid=>{const e=exerciseById(state,eid),u=urgency(state,eid,today),pinned=state.pinned.includes(eid);return `<div class="pin-shell heat-${u.level}"><button class="pin-card" data-action="open" data-id="${eid}"><strong>${html(e.name)}</strong><span class="pin-bottom">${pips(eid)}<small data-countdown="${eid}"></small></span></button>${pinned?`<button class="unpin-button" data-action="pin" data-id="${eid}" aria-label="Unpin ${html(e.name)}">×</button>`:''}${state.timers[eid]?`<button class="timer-stop-top" data-action="timer-stop" data-id="${eid}" aria-label="Stop ${html(e.name)} timer">Stop rest</button>`:''}</div>`;}).join('')}</div>`:''}</div>`;
     tickLabels();
   }
-  function exerciseRow(e){const c=completion(state,e.id,today),r=readiness(state,e.id,today),pinned=state.pinned.includes(e.id),status=urgency(state,e.id,today);return `<details class="exercise heat-${status.level} ${c.complete?'complete':c.done?'in-progress':''} ${e.parent?'alternate':''}" data-exercise="${e.id}" ${ui.exercise===e.id?'open':''}><summary><div class="exercise-summary"><span class="exercise-name">${html(e.name)}</span><span class="heat-label"><i class="state-dot" aria-hidden="true"></i><span class="sr-only">${status.level==='due'?'Due':'Recently trained'} · </span>${status.paired?'Complementary rotation':`${e.restCycle}d cycle`}</span><span class="exercise-meta">${e.parent?'Alternate · ':''}${since(r)} <i>·</i> T${e.tier} / ${points(e)} pts</span></div>${pips(e.id)}<button class="pin-button ${pinned?'pinned':''}" data-action="pin" data-id="${e.id}" aria-label="${pinned?'Unpin':'Pin'} ${html(e.name)}" aria-pressed="${pinned}">${pinned?'◆':'◇'}</button><span class="chevron" aria-hidden="true">⌄</span></summary>${ui.exercise===e.id?logger(e):''}</details>`;}
-  function filtered(exercises){const q=ui.search.toLowerCase().trim();return exercises.filter(e=>!e.archived&&!state.hiddenGroups.includes(e.group)&&(!q||`${e.name} ${state.groups.find(g=>g[0]===e.group)[1]}`.toLowerCase().includes(q)));}
+  function exerciseRow(e){const c=slotCompletion(state,e.id,today),r=readiness(state,e.id,today),pinned=state.pinned.includes(e.id),status=urgency(state,e.id,today);return `<details class="exercise heat-${status.level} ${c.complete?'complete':c.done?'in-progress':''}" data-exercise="${e.id}" ${ui.exercise===e.id?'open':''}><summary><div class="exercise-summary"><span class="exercise-name">${html(e.name)}</span><span class="heat-label"><i class="state-dot" aria-hidden="true"></i><span class="sr-only">${status.level==='due'?'Due':'Recently trained'} · </span>${status.paired?'Complementary rotation':`${e.restCycle}d cycle`}</span><span class="exercise-meta">${e.parent?'Alternate · ':''}${since(r)} <i>·</i> T${e.tier} / ${points(e)} pts</span></div>${pips(e.id)}<button class="pin-button ${pinned?'pinned':''}" data-action="pin" data-id="${e.id}" aria-label="${pinned?'Unpin':'Pin'} ${html(e.name)}" aria-pressed="${pinned}">${pinned?'◆':'◇'}</button><span class="chevron" aria-hidden="true">⌄</span></summary>${ui.exercise===e.id?logger(e):''}</details>`;}
+  function filtered(exercises){return visibleSlots(state,exercises,ui.search.toLowerCase().trim());}
   function renderMain(){
     $('#page-title').textContent=ui.page==='muscles'?'Your floor. Your flow.':'Find your station.';
     $('#page-subtitle').textContent=ui.page==='muscles'?'Glow = due · Muted = recent. Hold to edit.':'Same exercises. One history. Wherever you train.';
@@ -1218,8 +1343,8 @@ function boot() {
         const list=visible.filter(e=>e.group===gid).sort((a,b)=>rank(a)-rank(b)||Number(!!a.parent)-Number(!!b.parent));
         if(state.hiddenGroups.includes(gid)||(!list.length&&ui.search))return '';
         const all=list,status=folderUrgency(state,state.exercises.filter(e=>e.group===gid).map(e=>e.id),today),last=groupReadiness(state,gid,today).hit;
-        const done=all.filter(e=>completion(state,e.id,today).complete).length;
-        return `<details class="muscle heat-${status.level}" data-group="${gid}" ${ui.group===gid||ui.search?'open':''}><summary><span class="group-icon" aria-hidden="true">${String(state.groups.findIndex(g=>g[0]===gid)+1).padStart(2,'0')}</span><span class="group-name">${html(name)}<small>${list.length} ${list.length===1?'exercise':'exercises'}${done?` · ${done} done today`:''}</small></span><button class="text-button" data-action="edit-group" data-id="${gid}" aria-label="Edit ${html(name)}">Edit</button><span class="group-last">${last?`Latest: ${last.days===0?'today':`${last.days}d ago`}`:'No recent hit'}</span><span class="chevron" aria-hidden="true">⌄</span></summary><div class="exercise-list">${list.map(exerciseRow).join('')}</div></details>`;
+        const done=all.filter(e=>slotCompletion(state,e.id,today).complete).length;
+        return `<details class="muscle heat-${status.level}" data-group="${gid}" ${ui.group===gid||ui.search?'open':''}><summary><span class="group-icon" aria-hidden="true">${String(state.groups.findIndex(g=>g[0]===gid)+1).padStart(2,'0')}</span><span class="group-name">${html(name)}<small>${list.length} ${list.length===1?'movement slot':'movement slots'}${status.dailyComplete?' · Done today':done?` · ${done} done today`:''}</small></span><button class="text-button" data-action="edit-group" data-id="${gid}" aria-label="Edit ${html(name)}">Edit</button><span class="group-last">${last?`Latest: ${last.days===0?'today':`${last.days}d ago`}`:'No recent hit'}</span><span class="chevron" aria-hidden="true">⌄</span></summary><div class="exercise-list">${list.map(exerciseRow).join('')}</div></details>`;
       };
       const main=areas.main.map(renderGroup).join(''),floating=areas.floating.map(renderGroup).join('');
       const floatIds=visible.filter(e=>areas.floating.some(g=>g[0]===e.group)).map(e=>e.id),floatStatus=folderUrgency(state,floatIds,today);
@@ -1228,9 +1353,9 @@ function boot() {
 
     }else{
       $('#content').innerHTML=`<button class="new-folder" data-action="new-folder"><span>＋</span> Create station folder</button>`+state.folders.map(f=>{
-        const list=f.exerciseIds.map(eid=>exerciseById(state,eid)).filter(e=>visible.some(v=>v.id===e.id));
+        const list=filtered(f.exerciseIds.map(eid=>exerciseById(state,eid)));
         if(ui.search&&!list.length)return '';
-        return `<details class="muscle station heat-${folderUrgency(state,f.exerciseIds,today).level}" data-folder="${f.id}" ${ui.folder===f.id||ui.search?'open':''}><summary><span class="folder-icon" aria-hidden="true">▱</span><span class="group-name">${html(f.name)}<small>${f.exerciseIds.length} linked exercises</small></span><button class="text-button" data-action="edit-folder" data-id="${f.id}" aria-label="Edit ${html(f.name)}">Edit</button><span class="chevron" aria-hidden="true">⌄</span></summary><div class="exercise-list">${list.length?list.map(exerciseRow).join(''):'<p class="empty">No matching exercises here. Use Edit to add some.</p>'}</div></details>`;
+        return `<details class="muscle station heat-${folderUrgency(state,f.exerciseIds,today).level}" data-folder="${f.id}" ${ui.folder===f.id||ui.search?'open':''}><summary><span class="folder-icon" aria-hidden="true">▱</span><span class="group-name">${html(f.name)}<small>${list.length} movement slots</small></span><button class="text-button" data-action="edit-folder" data-id="${f.id}" aria-label="Edit ${html(f.name)}">Edit</button><span class="chevron" aria-hidden="true">⌄</span></summary><div class="exercise-list">${list.length?list.map(exerciseRow).join(''):'<p class="empty">No matching exercises here. Use Edit to add some.</p>'}</div></details>`;
       }).join('');
     }
     refreshWeightFields();
@@ -1239,28 +1364,37 @@ function boot() {
     el.style.height='auto';el.style.height=`${Math.max(50,el.scrollHeight+2)}px`;
     const preview=el.parentElement.querySelector('.weight-preview');if(!preview)return;
     if(!el.value.trim()||el.disabled){preview.textContent='';el.removeAttribute('aria-invalid');return;}
-    try{const total=parseWeight(el.value);preview.textContent=`Total: ${total} ${state.settings.unit}`;preview.classList.remove('invalid');el.removeAttribute('aria-invalid');}
+    try{const total=parseWeight(el.value);preview.textContent=total===null?'Text load · saved in history':`Total: ${total} ${state.settings.unit}`;preview.classList.remove('invalid');el.removeAttribute('aria-invalid');}
     catch{preview.textContent='Check format';preview.classList.add('invalid');el.setAttribute('aria-invalid','true');}
   }
-  function refreshWeightFields(){document.querySelectorAll('textarea[data-field="weight"]').forEach(updateWeightField);}
+  function refreshWeightFields(){document.querySelectorAll('textarea[data-field="weight"]').forEach(updateWeightField);document.querySelectorAll('textarea[data-drop-field]').forEach(el=>{el.style.height='auto';el.style.height=el.scrollHeight+'px';});}
   window.addEventListener('resize',refreshWeightFields);
+  function dropRows(eid,index,rec,draft){
+    const drops=rec?.drops||draft.drops||[],open=ui.dropOpen[draftKey(today,eid,index)]??!!drops.length;
+    if(!open)return '';
+    return `<div class="drop-rounds">${drops.map((d,n)=>`<div class="drop-round"><span>↳ ${n+1}</span><textarea rows="1" maxlength="200" inputmode="text" data-drop-field="weight" data-id="${eid}" data-index="${index}" data-round="${n}" aria-label="Drop ${n+1} weight" placeholder="Weight" ${rec?'disabled':''}>${html(rec?weightText({...d,unit:rec.unit},state.settings.unit):d.weight)}</textarea><input type="number" inputmode="numeric" min="1" max="999" data-drop-field="reps" data-id="${eid}" data-index="${index}" data-round="${n}" aria-label="Drop ${n+1} reps" placeholder="Reps" value="${html(d.reps)}" ${rec?'disabled':''}>${!rec?`<button data-action="drop-remove" data-id="${eid}" data-index="${index}" data-round="${n}" aria-label="Remove drop ${n+1}">×</button>`:''}</div>`).join('')}${!rec?`<button class="drop-add" data-action="drop-add" data-id="${eid}" data-index="${index}" aria-label="Add drop round">+ Drop</button>`:''}</div>`;
+  }
   function logger(e){
+    const root=exerciseById(state,slotId(state,e.id)),variants=slotVariants(state,e.id).filter(v=>!v.archived);
+    const chooser=variants.length>1?`<label class="variation-picker">Variation<select data-variation="${root.id}" aria-label="Exercise variation">${variants.map(v=>`<option value="${v.id}" ${v.id===e.id?'selected':''}>${html(v.name)}${v.id===root.id?' · Default':''}</option>`).join('')}</select></label>`:'';
+    e={...e,tier:root.tier,restCycle:root.restCycle};
+    const slot=slotCompletion(state,e.id,today);
     const r=readiness(state,e.id,today),c=completion(state,e.id,today),records=dailyRecords(state,e.id,today),previous=previousSession(state,e.id,today),unit=state.settings.unit;
     const prior=previous[0];
-    return `<section class="logger" data-logger="${e.id}"><div class="prescription"><span>${e.reps} reps</span><span>Target RIR: ${html(e.rir||'Not set')}</span><span>${e.restCycle}-day cycle</span><span>${duration(e.rest[0])}${e.rest[0]!==e.rest[1]?`–${duration(e.rest[1])}`:''} rest</span><span>T${e.tier} · ${points(e)} pts</span></div>
+    return `<section class="logger" data-logger="${e.id}">${chooser}<div class="prescription"><span>${e.reps} reps</span><span>Target RIR: ${html(e.rir||'Not set')}</span><span>${e.restCycle}-day cycle</span><span>${duration(e.rest[0])}${e.rest[0]!==e.rest[1]?`–${duration(e.rest[1])}`:''} rest</span><span>T${e.tier} · ${points(e)} pts</span></div>
 
       <div class="memory-line"><span>${r?`Last hit <strong>${dateLabel(r.day)}</strong>`:'No hit in this training block'}</span>${prior?`<small>Previous session: ${dateLabel(prior.day)}</small>`:'<small>Build your baseline.</small>'}</div>
       <label class="seat-label"><span>Pin/Seat Pos</span><input type="text" maxlength="200" autocomplete="off" data-seat="${e.id}" value="${html(e.seat)}" placeholder="${html(e.seat||'e.g. Chair 2')}"></label>
-      <div class="set-head"><span>SET</span><span>${unit.toUpperCase()}</span><span>REPS</span><span title="Lengthened partials">P</span><span>DONE</span></div>
+      <div class="set-head"><span>SET</span><span>${unit.toUpperCase()}</span><span>REPS</span><span title="Drop rounds">D</span><span>DONE</span></div>
       <div class="sets">${Array.from({length:c.target},(_,index)=>{
         const rec=records.find(r=>r.index===index),draft=state.drafts[draftKey(today,e.id,index)]||{weight:'',reps:'',partial:false},last=previousSet(state,e.id,index,today);
-        const weight=rec?inUnit(rec,unit):draft.weight,reps=rec?rec.reps:draft.reps;
-        return `<div class="set-block ${rec?'logged':''}" data-row="${index}" data-id="${e.id}"><div class="set-row"><span class="set-num">${index+1}</span><div class="weight-cell"><textarea rows="1" wrap="soft" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="200" aria-label="Set ${index+1} weight in ${unit}; numbers, x or star to multiply, commas to add" data-field="weight" data-id="${e.id}" data-index="${index}" placeholder="${last?inUnit(last,unit):'—'}" ${rec?'disabled':''}>${html(weight)}</textarea><output class="weight-preview" aria-live="polite"></output></div><input type="number" step="1" min="1" max="999" inputmode="numeric" autocomplete="off" aria-label="Set ${index+1} full reps" data-field="reps" data-id="${e.id}" data-index="${index}" value="${html(reps)}" placeholder="${last?last.reps:'—'}" ${rec?'disabled':''}><label class="partial-label" title="Lengthened partials after full reps"><input type="checkbox" data-field="partial" data-id="${e.id}" data-index="${index}" aria-label="Set ${index+1} included lengthened partials" ${rec?.partial||!rec&&draft.partial?'checked':''} ${rec?'disabled':''}><span aria-hidden="true">P</span></label><button class="set-check" role="checkbox" aria-checked="${!!rec}" data-action="set" data-id="${e.id}" data-index="${index}" aria-label="${rec?'Uncheck':'Complete'} set ${index+1}">${rec?'✓':'+'}</button></div><div class="row-memory"><span>${rec?`Saved ${exactTime(rec.at)}${rec.partial?' · + partials':''}`:last?`Last: ${metric(last)} · ${dateLabel(last.day)}`:'No previous set · 0 = unweighted'}</span>${!rec&&last?`<button data-action="copy" data-id="${e.id}" data-index="${index}" aria-label="Copy previous session into set ${index+1}">↺ Use last</button>`:''}</div></div>`;
+        const weight=rec?(rec.weight===null?rec.weightNote:inUnit(rec,unit)):draft.weight,reps=rec?rec.reps:draft.reps;
+        return `<div class="set-block ${rec?'logged':''}" data-row="${index}" data-id="${e.id}"><div class="set-row"><span class="set-num">${index+1}</span><div class="weight-cell"><textarea rows="1" wrap="soft" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="200" aria-label="Set ${index+1} weight in ${unit}; numbers, plate math or text notes" data-field="weight" data-id="${e.id}" data-index="${index}" placeholder="${last?html(last.weight===null?last.weightNote:inUnit(last,unit)):'—'}" ${rec?'disabled':''}>${html(weight)}</textarea><output class="weight-preview" aria-live="polite"></output></div><input type="number" step="1" min="1" max="999" inputmode="numeric" autocomplete="off" aria-label="Set ${index+1} full reps" data-field="reps" data-id="${e.id}" data-index="${index}" value="${html(reps)}" placeholder="${last?last.reps:'—'}" ${rec?'disabled':''}><button class="drop-toggle" data-action="drops" data-id="${e.id}" data-index="${index}" aria-label="Drop rounds for set ${index+1}" aria-expanded="${!!(ui.dropOpen[draftKey(today,e.id,index)]??(rec?.drops||draft.drops)?.length)}" ${rec&&!rec.drops?.length?'disabled':''}>D</button><button class="set-check" role="checkbox" aria-checked="${!!rec}" data-action="set" data-id="${e.id}" data-index="${index}" aria-label="${rec?'Uncheck':'Complete'} set ${index+1}">${rec?'✓':'+'}</button></div>${dropRows(e.id,index,rec,draft)}<div class="row-memory"><span>${rec?`Saved ${exactTime(rec.at)}${rec.partial?' · + partials':''}${rec.weightNote?` · ${html(rec.weightNote)}`:''}`:last?`Last: ${metric(last)} · ${dateLabel(last.day)}`:'No previous set · 0 = unweighted'}</span>${!rec&&last?`<button data-action="copy" data-id="${e.id}" data-index="${index}" aria-label="Copy previous session into set ${index+1}">↺ Use last</button>`:''}</div></div>`;
       }).join('')}</div>
       <div class="logger-tools"><div class="target-stepper"><button data-action="target-minus" data-id="${e.id}" aria-label="Remove one planned set">−</button><span>${c.target} sets</span><button data-action="target-plus" data-id="${e.id}" aria-label="Add one planned set">+</button></div><button data-action="tools" data-id="${e.id}">± Load tools</button></div>
 
       <div class="logger-links"><button data-action="edit-exercise" data-id="${e.id}">Edit exercise</button><button data-action="graph" data-id="${e.id}">↗ Progression</button><button data-action="alternate" data-id="${e.id}">＋ Custom alternate</button></div>
-      <div class="logger-bottom"><span>${c.complete?(state.fatigueResets[today]?.includes(e.id)?'✓ Complete · fatigue reset':`✓ Complete · ${points(e)} fatigue points`):`${c.done}/${c.target} logged · points after all sets`}</span><button class="text-button" data-action="rest-setting" data-id="${e.id}">Rest ${duration(state.rest[e.id]||(e.rest[0]+e.rest[1])/2)}</button></div>
+      <div class="logger-bottom"><span>${slot.complete?((state.fatigueResets[today]||[]).some(id=>slotId(state,id)===root.id)?'✓ Slot complete · fatigue reset':`✓ Slot complete · ${points(e)} fatigue points`):`${slot.done}/${slot.target} slot sets · points when complete`}</span><button class="text-button" data-action="rest-setting" data-id="${e.id}">Rest ${duration(state.rest[e.id]||(e.rest[0]+e.rest[1])/2)}</button></div>
     </section>`;
   }
 
@@ -1270,19 +1404,19 @@ function boot() {
   function closeModal(){$('#dialog').close();ui.modal=null;renderTop();renderMain();attachFloating();}
   function renderModal(){
     if(!ui.modal)return;
-    const {kind,id:eid}=ui.modal,e=eid?exerciseById(state,eid):null;
+    const {kind,id:eid}=ui.modal,original=eid?exerciseById(state,eid):null,root=eid?exerciseById(state,slotId(state,eid)):null,e=original?{...original,tier:root.tier,restCycle:root.restCycle,group:root.group}:null;
     let content='';
     if(kind==='log')content=head(state.groups.find(g=>g[0]===e.group)[1],e.name)+`<div class="dialog-body">${activeIds(state).length?`<nav class="superset-tabs" aria-label="Active superset">${activeIds(state).map((pid,i)=>`<button data-action="open" data-id="${pid}" class="${pid===eid?'selected':''}"><span>${String.fromCharCode(65+i)}</span>${html(exerciseById(state,pid).name)}<small data-countdown="${pid}"></small></button>`).join('')}</nav>`:''}${logger(e)}</div>`;
-    if(kind==='alternate')content=head('INDEPENDENT HISTORY','Add custom alternate',true)+`<form id="alternate-form" class="dialog-body" data-parent="${eid}"><p class="hint">Under ${html(e.name)}. This variation gets its own history, readiness, seat memory and fatigue points.</p><label>Name<input name="name" type="text" maxlength="100" required placeholder="e.g. Lying Leg Curl" autocomplete="off"></label><div class="form-grid"><label>Tier<select name="tier">${[1,2,3].map(t=>`<option value="${t}" ${t===e.tier?'selected':''}>Tier ${t} · ${4-t} pts</option>`).join('')}</select></label><label>Sets<input type="number" name="sets" value="${e.sets}" min="1" max="10" required></label></div><label>Rep range<input type="text" name="reps" value="${html(e.reps)}" maxlength="30" required></label><label>Target RIR<input name="rir" maxlength="5" value="${html(e.rir||'')}" placeholder="e.g. 1–2"></label><p class="hint">Rest is inherited from the parent. This alternate’s last-hit date remains independent.</p><button class="primary full" type="submit">Create alternate</button><p id="form-error" class="error" tabindex="-1" role="alert"></p></form>`;
+    if(kind==='alternate')content=head('INDEPENDENT HISTORY','Add custom alternate',true)+`<form id="alternate-form" class="dialog-body" data-parent="${eid}"><p class="hint">Under ${html(e.name)}. This variation keeps its own weights, reps and seat memory. It shares this movement slot’s cooldown and points.</p><label>Name<input name="name" type="text" maxlength="100" required placeholder="e.g. Lying Leg Curl" autocomplete="off"></label><div class="form-grid"><label>Sets<input type="number" name="sets" value="${e.sets}" min="1" max="10" required></label></div><label>Rep range<input type="text" name="reps" value="${html(e.reps)}" maxlength="30" required></label><label>Target RIR<input name="rir" maxlength="5" value="${html(e.rir||'')}" placeholder="e.g. 1–2"></label><p class="hint">Rest is inherited from the parent. Completing any variation satisfies the same movement slot.</p><button class="primary full" type="submit">Create alternate</button><p id="form-error" class="error" tabindex="-1" role="alert"></p></form>`;
     if(kind==='folder'){
       const folder=state.folders.find(f=>f.id===ui.modal.folderId);
-      content=head('LINKED, NOT DUPLICATED',folder?'Edit station':'Create a station')+`<form id="folder-form" class="dialog-body" data-folder="${folder?.id||''}"><label>Station name<input name="name" type="text" maxlength="60" required value="${html(folder?.name||'')}" placeholder="e.g. Cable Station"></label><p class="hint">Select exercises to link. Logs and seat settings update everywhere.</p><div class="folder-checklist">${state.groups.map(([gid,name])=>`<fieldset><legend>${html(name)}</legend>${state.exercises.filter(e=>e.group===gid&&!e.archived).map(e=>`<label class="folder-choice"><input type="checkbox" name="exercise" value="${e.id}" ${folder?.exerciseIds.includes(e.id)?'checked':''}><span>${html(e.name)}${e.parent?'<small>Custom alternate</small>':''}</span></label>`).join('')}</fieldset>`).join('')}</div><button type="submit" class="primary full">Save station</button>${folder?`<button type="button" class="danger full" data-action="delete-folder" data-id="${folder.id}">Delete folder · keep exercise history</button>`:''}<p id="form-error" class="error" tabindex="-1" role="alert"></p></form>`;
+      content=head('LINKED, NOT DUPLICATED',folder?'Edit station':'Create a station')+`<form id="folder-form" class="dialog-body" data-folder="${folder?.id||''}"><label>Station name<input name="name" type="text" maxlength="60" required value="${html(folder?.name||'')}" placeholder="e.g. Cable Station"></label><p class="hint">Select exercises to link. Logs and seat settings update everywhere.</p><div class="folder-checklist">${state.groups.map(([gid,name])=>`<fieldset><legend>${html(name)}</legend>${state.exercises.filter(e=>e.group===gid&&!e.archived&&!e.parent).map(e=>`<label class="folder-choice"><input type="checkbox" name="exercise" value="${e.id}" ${folder?.exerciseIds.some(id=>slotId(state,id)===e.id)?'checked':''}><span>${html(e.name)}${e.parent?'<small>Custom alternate</small>':''}</span></label>`).join('')}</fieldset>`).join('')}</div><button type="submit" class="primary full">Save station</button>${folder?`<button type="button" class="danger full" data-action="delete-folder" data-id="${folder.id}">Delete folder · keep exercise history</button>`:''}<p id="form-error" class="error" tabindex="-1" role="alert"></p></form>`;
     }
-    if(kind==='settings')content=head('LOCAL. PRIVATE. YOURS.','Misc')+`<nav class="settings-tabs"><button data-action="misc-tab" data-tab="data" class="${!ui.hardware?'selected':''}">Data & app</button><button data-action="misc-tab" data-tab="hardware" class="${ui.hardware?'selected':''}">Hardware Settings</button></nav>`+`<div class="dialog-body"><label class="setting-row"><span>Weight unit<small>Original history units are preserved.</small></span><select id="units"><option value="lbs" ${state.settings.unit==='lbs'?'selected':''}>lbs</option><option value="kg" ${state.settings.unit==='kg'?'selected':''}>kg</option></select></label><div class="settings-actions"><button data-action="export">↓ Export / Backup Data</button><button data-action="import">↑ Restore V2 Backup</button>${unreadable!==null?'<button data-action="raw-export">Download unreadable original</button>':''}<button data-action="install">↗ Install app</button><button class="danger" data-action="reset-fatigue">Reset Daily Fatigue</button><button class="danger" data-action="reset-cooldowns">Reset All Cooldowns</button></div><input id="backup-file" type="file" accept=".json,application/json" hidden><p class="hint">Reset Daily Fatigue clears today’s score and counted exercises, keeping set checkmarks and cooldowns. Newly completed exercises add points again. Resetting cooldowns marks every folder Ready and clears its last-hit indicator for this block. It preserves weights, reps, dates, partial flags, seat positions and today’s completed sets / points. Undo is available for 3 seconds.</p><p class="hint">${state.history.length} saved sets · ${state.exercises.length} exercises<br>${html(offline)}</p><p class="hint">Rest days count local calendar midnights, not 24-hour periods. Exercise heat follows its 3- or 7-day cycle. Parent heat respects shared muscles, while separate muscles contribute independently. Logging is always available. These are planning labels, not a physiological recovery measurement. Tier points are your planning score.</p><p class="hint">Export before clearing site data, changing browsers or moving devices. Phone settings can block wake lock, sound or vibration. Background / locked-screen alerts are not guaranteed.</p><p id="form-error" class="error" tabindex="-1" role="alert"></p></div>`;
+    if(kind==='settings')content=head('LOCAL. PRIVATE. YOURS.','Misc')+`<nav class="settings-tabs"><button data-action="misc-tab" data-tab="data" class="${!ui.hardware?'selected':''}">Data & app</button><button data-action="misc-tab" data-tab="hardware" class="${ui.hardware?'selected':''}">Hardware Settings</button></nav>`+`<div class="dialog-body"><label class="setting-row"><span>Weight unit<small>Original history units are preserved.</small></span><select id="units"><option value="lbs" ${state.settings.unit==='lbs'?'selected':''}>lbs</option><option value="kg" ${state.settings.unit==='kg'?'selected':''}>kg</option></select></label><div class="settings-actions"><button data-action="export">↓ Export / Backup Data</button><button data-action="import">↑ Restore V2 Backup</button>${unreadable!==null?'<button data-action="raw-export">Download unreadable original</button>':''}<button data-action="install">↗ Install app</button><button class="danger" data-action="reset-fatigue">Reset Daily Fatigue</button><button class="danger" data-action="reset-cooldowns">Reset All Cooldowns</button></div><input id="backup-file" type="file" accept=".json,application/json" hidden><p class="hint">Reset Daily Fatigue clears today’s score and counted exercises, keeping set checkmarks and cooldowns. Newly completed exercises add points again. Resetting cooldowns marks every folder Ready and clears its last-hit indicator for this block. It preserves weights, reps, dates, partial flags, seat positions and today’s completed sets / points. Undo is available for 3 seconds.</p><p class="hint">${state.history.length} saved sets · ${state.exercises.length} exercises<br>${html(offline)}</p><p class="hint">Rest days count local calendar midnights, not 24-hour periods. Paired exercises alternate and reset together after six inactive calendar days. Standalone exercises retain their own cycle. Folders turn muted when today’s due workout choices are complete. Logging is always available. These are planning labels, not a physiological recovery measurement. Tier points are your planning score.</p><p class="hint">Export before clearing site data, changing browsers or moving devices. Phone settings can block wake lock, sound or vibration. Background / locked-screen alerts are not guaranteed.</p><p id="form-error" class="error" tabindex="-1" role="alert"></p></div>`;
     if(kind==='settings'&&ui.hardware)content=head('ANDROID CHROME · GALAXY S10','Misc')+`<nav class="settings-tabs"><button data-action="misc-tab" data-tab="data">Data & app</button><button data-action="misc-tab" data-tab="hardware" class="selected">Hardware Settings</button></nav><div class="dialog-body"><label class="setting-row"><span>Audio tone</span><input type="checkbox" id="sound" ${state.settings.sound?'checked':''}></label><label>Volume <output id="volume-value">${Math.round(state.settings.volume*100)}%</output><input type="range" id="volume" min="0" max="1" step="0.05" value="${state.settings.volume}"></label><label class="setting-row"><span>Haptic vibration</span><input type="checkbox" id="haptics" ${state.settings.haptics?'checked':''}></label><label>Haptic intensity <output id="hapticIntensity-value">${Math.round(state.settings.hapticIntensity*100)}%</output><input type="range" id="hapticIntensity" min="0" max="1" step="0.1" value="${state.settings.hapticIntensity}"></label><p class="hint">Adjusts pulse length, not motor amplitude. Android controls physical vibration strength.</p><button class="primary full" data-action="test-hardware">Test tone & vibration</button><p class="hint" id="hardware-status">Audio: ${audio?.state||'waiting for a tap'} · Vibration API: ${navigator.vibrate?'available':'unavailable'}</p><p class="hint">Keep media volume on. Silent mode, Do Not Disturb, background suspension and power saving may suppress alerts. Timers remain accurate when you return. Screen wake lock is requested during rest.</p><p id="form-error" class="error" role="alert"></p></div>`;
     if(kind==='workout')content=head('NO RUSH. JUST GOOD SETS.','Workout clock')+`<div class="dialog-body"><div class="big-clock" id="big-clock">${duration(Math.floor(workoutMillis(state)/1000))}</div><p class="hint">Starts with your first logged set, or start it manually. Keeps elapsed time through navigation and reloads.</p><div class="button-row"><button class="primary" data-action="clock-toggle">${state.clock.ended?'Start new workout':state.clock.startedAt!==null?'Pause':state.clock.elapsed?'Resume':'Start'}</button><button data-action="end-workout" class="danger" ${state.clock.ended?'disabled':''}>End workout</button></div><p class="hint">End workout saves the final duration, stops all rest timers and clears the active tray. Your logs, cooldowns and fatigue stay intact. Reset fatigue separately in Settings.</p></div>`;
     if(kind==='rest')content=head('EXERCISE TIMER',e.name,true)+`<form id="rest-form" class="dialog-body" data-id="${eid}"><label>Rest in seconds<input type="number" min="15" max="900" step="1" name="seconds" value="${state.rest[eid]||(e.rest[0]+e.rest[1])/2}" required></label><p class="hint">Prescribed range: ${duration(e.rest[0])}–${duration(e.rest[1])}. Applies to this exercise’s next checked set.</p><button class="primary full">Save rest duration</button><p id="form-error" class="error" tabindex="-1" role="alert"></p></form>`;
-    if(kind==='edit-exercise')content=head('YOUR EXERCISE','Edit exercise')+`<form id="exercise-edit-form" class="dialog-body" data-id="${eid}"><label>Name<input name="name" maxlength="100" required value="${html(e.name)}"></label><div class="form-grid"><label>Number of sets<input name="sets" type="number" inputmode="numeric" min="1" max="10" required value="${e.sets}"></label><label>Target reps<input name="reps" maxlength="7" required value="${html(e.reps)}" placeholder="8–12"></label></div><label>Tier / fatigue points<select name="tier">${[1,2,3].map(t=>`<option value="${t}" ${e.tier===t?'selected':''}>Tier ${t} · ${4-t} pts</option>`).join('')}</select></label><div class="form-grid"><label>Rest min (seconds)<input name="restMin" type="number" inputmode="numeric" min="15" max="900" required value="${e.rest[0]}"></label><label>Rest max (seconds)<input name="restMax" type="number" inputmode="numeric" min="15" max="900" required value="${e.rest[1]}"></label></div><p class="hint">Use the same value for a fixed rest. 90 seconds = 1½ min; 180 = 3 min. Rest changes apply to the next timer.</p><label>Target RIR<input name="rir" maxlength="5" value="${html(e.rir||'')}" placeholder="e.g. 1–2"></label><label>Rest cycle<select name="restCycle"><option value="3" ${e.restCycle===3?'selected':''}>3 days · twice weekly</option><option value="7" ${e.restCycle===7?'selected':''}>7 days · once weekly</option></select></label><label>Category<select name="group">${state.groups.filter(g=>!state.hiddenGroups.includes(g[0])).map(g=>`<option value="${g[0]}" ${e.group===g[0]?'selected':''}>${html(g[1])}</option>`).join('')}</select></label><label>Seat / setup notes<input name="seat" maxlength="200" value="${html(e.seat)}"></label><button class="primary full">Save changes</button><button type="button" class="danger full" data-action="archive-exercise" data-id="${eid}">Delete exercise</button><p class="hint">Deleting removes this exercise and its alternates from active lists. History remains in your backup. Undo is available for 3 seconds.</p><p id="form-error" class="error" role="alert"></p></form>`;
+    if(kind==='edit-exercise')content=head('YOUR EXERCISE','Edit exercise')+`<form id="exercise-edit-form" class="dialog-body" data-id="${eid}"><label>Name<input name="name" maxlength="100" required value="${html(e.name)}"></label><div class="form-grid"><label>Number of sets<input name="sets" type="number" inputmode="numeric" min="1" max="10" required value="${e.sets}"></label><label>Target reps<input name="reps" maxlength="7" required value="${html(e.reps)}" placeholder="8–12"></label></div><label>Slot tier / fatigue points<select name="tier">${[1,2,3].map(t=>`<option value="${t}" ${e.tier===t?'selected':''}>Tier ${t} · ${4-t} pts</option>`).join('')}</select></label><div class="form-grid"><label>Rest min (seconds)<input name="restMin" type="number" inputmode="numeric" min="15" max="900" required value="${e.rest[0]}"></label><label>Rest max (seconds)<input name="restMax" type="number" inputmode="numeric" min="15" max="900" required value="${e.rest[1]}"></label></div><p class="hint">Use the same value for a fixed rest. 90 seconds = 1½ min; 180 = 3 min. Rest changes apply to the next timer.</p><label>Target RIR<input name="rir" maxlength="5" value="${html(e.rir||'')}" placeholder="e.g. 1–2"></label><label>Slot rest cycle<select name="restCycle"><option value="3" ${e.restCycle===3?'selected':''}>3 days · twice weekly</option><option value="7" ${e.restCycle===7?'selected':''}>7 days · once weekly</option></select></label><label>Category<select name="group">${state.groups.filter(g=>!state.hiddenGroups.includes(g[0])).map(g=>`<option value="${g[0]}" ${e.group===g[0]?'selected':''}>${html(g[1])}</option>`).join('')}</select></label><label>Seat / setup notes<input name="seat" maxlength="200" value="${html(e.seat)}"></label><button class="primary full">Save changes</button><button type="button" class="danger full" data-action="archive-exercise" data-id="${eid}">Delete exercise</button><p class="hint">Deleting removes this exercise and its alternates from active lists. History remains in your backup. Undo is available for 3 seconds.</p><p id="form-error" class="error" role="alert"></p></form>`;
     if(kind==='edit-group'){
       const gid=ui.modal.groupId,g=state.groups.find(g=>g[0]===gid);
       content=head('YOUR CATEGORY','Edit category')+`<form id="group-edit-form" class="dialog-body" data-group="${gid}"><label>Name<input name="name" maxlength="60" required value="${html(g[1])}"></label><button class="primary full">Save name</button><button type="button" data-action="add-exercise" data-id="${gid}">＋ Add an exercise</button><label>Move or restore an existing exercise here<select name="existing"><option value="">Choose exercise…</option>${state.exercises.filter(e=>e.group!==gid||e.archived).map(e=>`<option value="${e.id}">${html(e.name)}${e.archived?' (deleted)':''}</option>`).join('')}</select></label><button type="button" data-action="move-existing" data-id="${gid}">Add selected exercise</button><button type="button" class="danger full" data-action="archive-group" data-id="${gid}">Delete category and its exercises</button><p class="hint">Saved history stays in your backup. Undo is available for 3 seconds.</p><p id="form-error" class="error" role="alert"></p></form>`;
@@ -1306,7 +1440,7 @@ function boot() {
     const y=p=>height-pad.bottom-p.value/max*(height-pad.top-pad.bottom);
     const chosen=series[ui.graphPoint ?? series.length-1];
     const chart=series.length?`<svg class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-labelledby="chart-title chart-desc"><title id="chart-title">${html(e.name)}: ${volume?'daily volume load':'estimated one-rep max'}</title><desc id="chart-desc">${series.length} training days. Values are also listed in the table below. Select a point to inspect it.</desc>${[0,.5,1].map(v=>`<line x1="${pad.left}" x2="${width-pad.right}" y1="${height-pad.bottom-v*(height-pad.top-pad.bottom)}" y2="${height-pad.bottom-v*(height-pad.top-pad.bottom)}" stroke="#283125"/><text x="${pad.left-8}" y="${height-pad.bottom-v*(height-pad.top-pad.bottom)+4}" text-anchor="end">${Math.round(max*v).toLocaleString()}</text>`).join('')}<path d="${series.map((p,i)=>`${i?'L':'M'} ${x(p)} ${y(p)}`).join(' ')}" fill="none" stroke="#cefb79" stroke-width="2.5"/>${series.map((p,i)=>`<circle cx="${x(p)}" cy="${y(p)}" r="${i===(ui.graphPoint??series.length-1)?6:4}" fill="#cefb79" stroke="#11180b" stroke-width="2" data-point="${i}" tabindex="0" role="button" aria-label="${dateLabel(p.day)}: ${p.value} ${unit}${volume?' reps':''}"><title>${dateLabel(p.day)} · ${p.value.toLocaleString()}</title></circle>`).join('')}<text x="${pad.left}" y="${height-10}">${dateLabel(series[0].day)}</text>${series.length>1?`<text x="${width-pad.right}" y="${height-10}" text-anchor="end">${dateLabel(series.at(-1).day)}</text>`:''}</svg>`:'<div class="empty chart-empty">Your next baseline starts here.<br>Log a set to build this graph.</div>';
-    return head('YOUR PROGRESS',e.name,true)+`<div class="dialog-body"><div class="segmented"><button data-action="graph-metric" data-metric="volume" class="${volume?'selected':''}">Volume load</button><button data-action="graph-metric" data-metric="e1rm" class="${!volume?'selected':''}">Estimated 1RM</button></div><div class="graph-value"><strong>${chosen?chosen.value.toLocaleString():'—'}</strong><span>${volume?`${unit} × reps`:unit}${chosen?` · ${dateLabel(chosen.day)}`:''}</span></div>${chart}<p class="hint">${volume?'Daily sum of recorded weight × full reps. Partial flags are retained, but extra partial reps are not counted. More sets also raise volume.':'Best Epley estimate per day: weight × (1 + full reps ÷ 30). Only sets with 1–12 reps, nonzero load and no partial flag qualify. This is an estimate, not a tested maximum.'} Values use ${unit}. For dumbbells, use a consistent per-hand convention.</p>${series.length?`<details class="data-table"><summary>Show daily values (${series.length})</summary><table><thead><tr><th>Date</th><th>${volume?'Volume load':'e1RM'}</th></tr></thead><tbody>${[...series].reverse().map(p=>`<tr><td>${dateLabel(p.day)}</td><td>${p.value.toLocaleString()}</td></tr>`).join('')}</tbody></table></details>`:''}<details class="data-table"><summary>Set history (${state.history.filter(r=>r.exerciseId===e.id).length})</summary>${[...state.history].reverse().filter(r=>r.exerciseId===e.id).map(r=>`<div class="history-row"><span>${exactTime(r.at)}<small>Set ${r.index+1}</small></span><b>${metric(r)}</b></div>`).join('')||'<p class="hint">No sets yet.</p>'}</details></div>`;
+    return head('YOUR PROGRESS',e.name,true)+`<div class="dialog-body"><div class="segmented"><button data-action="graph-metric" data-metric="volume" class="${volume?'selected':''}">Volume load</button><button data-action="graph-metric" data-metric="e1rm" class="${!volume?'selected':''}">Estimated 1RM</button></div><div class="graph-value"><strong>${chosen?chosen.value.toLocaleString():'—'}</strong><span>${volume?`${unit} × reps`:unit}${chosen?` · ${dateLabel(chosen.day)}`:''}</span></div>${chart}<p class="hint">${volume?'Daily sum of weight × reps, including drop rounds. Legacy partial reps are not counted. More sets also raise volume.':'Best Epley estimate per day: weight × (1 + full reps ÷ 30). Only sets with 1–12 reps, nonzero load and no partial flag qualify. This is an estimate, not a tested maximum.'} Text-only loads stay in set history and are excluded from these graphs. Numeric values use ${unit}. For dumbbells, use a consistent per-hand convention.</p>${series.length?`<details class="data-table"><summary>Show daily values (${series.length})</summary><table><thead><tr><th>Date</th><th>${volume?'Volume load':'e1RM'}</th></tr></thead><tbody>${[...series].reverse().map(p=>`<tr><td>${dateLabel(p.day)}</td><td>${p.value.toLocaleString()}</td></tr>`).join('')}</tbody></table></details>`:''}<details class="data-table"><summary>Set history (${state.history.filter(r=>r.exerciseId===e.id).length})</summary>${[...state.history].reverse().filter(r=>r.exerciseId===e.id).map(r=>`<div class="history-row"><span>${exactTime(r.at)}<small>Set ${r.index+1}</small></span><b>${metric(r)}</b></div>`).join('')||'<p class="hint">No sets yet.</p>'}</details></div>`;
   }
   function syncTimers(){if(Object.keys(state.timers).length)acquireWake();else releaseWake();}
   async function acquireWake(){if(wake||wakePending||!Object.keys(state.timers).length||document.visibilityState!=='visible'||!navigator.wakeLock)return;wakePending=true;try{const lock=await navigator.wakeLock.request('screen');if(!Object.keys(state.timers).length){await lock.release();return;}wake=lock;lock.addEventListener('release',()=>{if(wake===lock)wake=null;tickLabels();});}catch{}finally{wakePending=false;tickLabels();}}
@@ -1324,7 +1458,7 @@ function boot() {
   }
   function renderAll(){renderTop();renderMain();renderModal();syncTimers();refreshWeightFields();}
   function currentRow(eid,index){const scope=$('#dialog').open?$('#dialog-content'):$('#content');return scope.querySelector(`[data-row="${index}"][data-id="${eid}"]`);}
-  function openExercise(eid){if(ui.returnY===null)ui.returnY=window.scrollY;showModal('log',eid);}
+  function openExercise(eid){mutate(s=>selectVariation(s,eid),{render:false});if(ui.returnY===null)ui.returnY=window.scrollY;showModal('log',eid);}
   function finishSetView(){
     const y=ui.returnY??window.scrollY;document.activeElement?.blur();ui.exercise=null;ui.group=null;ui.folder=null;ui.floating=false;ui.search='';$('#search').value='';
     if($('#dialog').open)closeModal();ui.modal=null;renderAll();
@@ -1356,10 +1490,17 @@ function boot() {
     if(a==='open'){openExercise(eid);return;}
     if(a==='pin'){mutate(s=>togglePin(s,eid));return;}
     if(a==='clear-pins'){mutate(s=>{s.pinned=[];});return;}
+    if(a==='drops'){
+      const key=draftKey(today,eid,index),rec=dailyRecords(state,eid,today).find(r=>r.index===index),drops=rec?.drops||state.drafts[key]?.drops||[];
+      ui.dropOpen[key]=!(ui.dropOpen[key]??!!drops.length);
+      if(ui.dropOpen[key]&&!drops.length&&!rec)mutate(s=>editDrop(s,eid,index,'add'),{render:false});
+      renderAll();return;
+    }
+    if(a==='drop-add'||a==='drop-remove'){mutate(s=>editDrop(s,eid,index,a==='drop-add'?'add':'remove',Number(b.dataset.round)));return;}
     if(a==='set'){
       if(localDay()!==today){today=localDay();renderAll();toast('Midnight crossed. Review today’s inputs before logging.');return;}
       unlockAudio();const row=currentRow(eid,index),record=dailyRecords(state,eid,today).find(r=>r.index===index);
-      const values={weight:row.querySelector('[data-field=weight]').value,reps:row.querySelector('[data-field=reps]').value,partial:row.querySelector('[data-field=partial]').checked};
+      const values={weight:row.querySelector('[data-field=weight]').value,reps:row.querySelector('[data-field=reps]').value,partial:state.drafts[draftKey(today,eid,index)]?.partial||false,drops:state.drafts[draftKey(today,eid,index)]?.drops||[]};
       const completedBefore=completion(state,eid,today).complete;
       if(mutate(s=>record?unlogSet(s,eid,index,today):completeWithHistory(s,eid,index,values),{render:false,message:record?'Set unchecked.':'Set saved.',canUndo:true})){buzz();if(!record){if(!completedBefore&&completion(state,eid,today).complete&&!state.fatigueResets[today]?.includes(eid))$('#announce').textContent=`${exerciseById(state,eid).name} complete. ${points(exerciseById(state,eid))} points added.`;finishSetView();}else renderAll();}return;
     }
@@ -1386,7 +1527,7 @@ function boot() {
     if(a==='import'){$('#backup-file').click();return;}
     if(a==='install'){install();return;}
     if(a==='tools'){const unfinished=Array.from({length:targetSets(state,eid,today)},(_,i)=>i).filter(i=>!dailyRecords(state,eid,today).some(r=>r.index===i));if(!unfinished.length){toast('All sets are logged. Add a set to use load tools.');return;}if(!unfinished.includes(ui.focusSet))ui.focusSet=unfinished[0];ui.plate={bar:state.settings.unit==='lbs'?45:20,plates:[]};showModal('tools',eid);return;}
-    if(a==='quick-weight'){try{const draft=state.drafts[draftKey(today,eid,ui.focusSet)],last=previousSet(state,eid,ui.focusSet,today);const base=draft?.weight!==undefined&&draft.weight!==''?parseWeight(draft.weight):last?inUnit(last,state.settings.unit):0;applyLoad(eid,Math.max(0,base+Number(b.dataset.amount)));}catch(e){error(e.message);}return;}
+    if(a==='quick-weight'){try{const draft=state.drafts[draftKey(today,eid,ui.focusSet)],last=previousSet(state,eid,ui.focusSet,today);const base=draft?.weight!==undefined&&draft.weight!==''?parseWeight(draft.weight):last?inUnit(last,state.settings.unit):0;if(base===null)throw Error('Enter a numeric load to use weight adjustments.');applyLoad(eid,Math.max(0,base+Number(b.dataset.amount)));}catch(e){error(e.message);}return;}
     if(a==='plate-add'){ui.plate.plates.push(Number(b.dataset.amount));renderModal();return;}
     if(a==='plate-remove'){ui.plate.plates.pop();renderModal();return;}
     if(a==='plate-clear'){ui.plate.plates=[];renderModal();return;}
@@ -1409,15 +1550,20 @@ function boot() {
     if(['volume','hapticIntensity'].includes(el.id)){if(mutate(s=>{s.settings[el.id]=Number(el.value);},{render:false})){document.getElementById(el.id+'-value').textContent=`${Math.round(Number(el.value)*100)}%`;}return;}
     if(el.id==='search'){ui.search=el.value;renderMain();return;}
     if(el.matches('[data-seat]')){mutate(s=>{exerciseById(s,el.dataset.seat).seat=el.value;},{render:false});return;}
+    if(el.dataset?.dropField){
+      mutate(s=>editDrop(s,el.dataset.id,Number(el.dataset.index),'edit',Number(el.dataset.round),el.dataset.dropField,el.value),{render:false});
+      if(el.tagName==='TEXTAREA'){el.style.height='auto';el.style.height=el.scrollHeight+'px';}return;
+    }
     if(el.matches('[data-field]')){
       const eid=el.dataset.id,index=Number(el.dataset.index),field=el.dataset.field;
       mutate(s=>writeDraft(s,eid,index,field,field==='partial'?el.checked:el.value,today),{render:false});
       if(field==='weight')updateWeightField(el);
-      if(field!=='partial'){const last=previousSet(state,eid,index,today),previous=last?(field==='weight'?inUnit(last,state.settings.unit):last.reps):null;let value;try{value=field==='weight'?parseWeight(el.value):Number(el.value);}catch{value=NaN;}el.classList.toggle('overload',previous!==null&&el.value!==''&&value>previous);}
+      if(field!=='partial'){const last=previousSet(state,eid,index,today),previous=last?(field==='weight'?inUnit(last,state.settings.unit):last.reps):null;let value;try{value=field==='weight'?parseWeight(el.value):Number(el.value);}catch{value=NaN;}el.classList.toggle('overload',previous!==null&&value!==null&&el.value!==''&&value>previous);}
     }
     if(el.id==='plate-bar'){ui.plate.bar=el.value;const total=Number(el.value)+2*ui.plate.plates.reduce((n,p)=>n+p,0);$('.plate-total').innerHTML=`${Number.isFinite(total)?total:'—'}<small>${state.settings.unit} total</small>`;const button=$('[data-action=plate-apply]');button.textContent=`Use ${Number.isFinite(total)?total:'—'} ${state.settings.unit}`;}
   });
   document.addEventListener('change',event=>{const el=event.target;
+    if(el.dataset?.variation){if(mutate(s=>selectVariation(s,el.value),{render:false})){ui.exercise=el.value;renderAll();openExercise(el.value);}return;}
     if(el.id==='units'&&!mutate(s=>changeUnits(s,el.value)))el.value=state.settings.unit;
     if(el.id==='sound'){mutate(s=>{s.settings.sound=el.checked;});unlockAudio();}
     if(el.id==='haptics'){mutate(s=>{s.settings.haptics=el.checked;});if(!el.checked)navigator.vibrate?.(0);else buzz();}
@@ -1431,7 +1577,7 @@ function boot() {
     if(form.id==='group-edit-form'){if(mutate(s=>renameGroup(s,form.dataset.group,String(data.get('name'))),{render:false})){closeModal();renderAll();}return;}
     if(form.id==='exercise-new-form'){if(mutate(s=>{const created=createExercise(s,form.dataset.group,String(data.get('name')),{tier:Number(data.get('tier')),sets:Number(data.get('sets')),reps:String(data.get('reps')),rest:Number(data.get('rest'))});setRir(s,created.id,String(data.get('rir')).trim());},{render:false})){ui.group=form.dataset.group;closeModal();renderAll();}return;}
     if(form.id==='alternate-form'){let created;const originFolder=ui.page==='stations'?ui.folder:null;
-      if(mutate(s=>{created=addAlternate(s,form.dataset.parent,String(data.get('name')),{tier:Number(data.get('tier')),sets:Number(data.get('sets')),reps:String(data.get('reps')).trim()});setRir(s,created.id,String(data.get('rir')).trim());if(originFolder){const f=s.folders.find(f=>f.id===originFolder);if(f&&!f.exerciseIds.includes(created.id))f.exerciseIds.push(created.id);}},{render:false})){renderTop();renderMain();openExercise(created.id);toast('Alternate added with independent history.');}
+      if(mutate(s=>{created=addAlternate(s,form.dataset.parent,String(data.get('name')),{sets:Number(data.get('sets')),reps:String(data.get('reps')).trim()});setRir(s,created.id,String(data.get('rir')).trim());selectVariation(s,created.id);if(originFolder){const f=s.folders.find(f=>f.id===originFolder),root=slotId(s,created.id);if(f&&!f.exerciseIds.some(eid=>slotId(s,eid)===root))f.exerciseIds.push(root);}},{render:false})){ui.exercise=created.id;renderTop();renderMain();openExercise(created.id);toast('Alternate added with independent history.');}
     }
     if(form.id==='folder-form'){const fid=form.dataset.folder||id();if(mutate(s=>setFolder(s,fid,String(data.get('name')),data.getAll('exercise')),{render:false})){ui.page='stations';ui.folder=fid;closeModal();renderAll();toast('Station saved. All entries stay linked.');}}
     if(form.id==='rest-form'){const seconds=Number(data.get('seconds'));if(mutate(s=>{if(!Number.isInteger(seconds)||seconds<15||seconds>900)throw Error('Choose 15–900 whole seconds.');s.rest[form.dataset.id]=seconds;},{render:false})){openExercise(form.dataset.id);toast('Rest duration saved.');}}
@@ -1456,8 +1602,8 @@ function boot() {
   document.addEventListener('contextmenu',event=>{const edit=editTarget(event.target);if(edit){event.preventDefault();cancelHold();if(Date.now()>=suppressClickUntil)edit();}},true);
   document.addEventListener('keydown',event=>{if(event.key==='F2'||event.shiftKey&&event.key==='F10'){const edit=editTarget(event.target);if(edit){event.preventDefault();edit();}}});
   let swipe=null;
-  document.addEventListener('pointerdown',event=>{const row=event.target.closest('[data-row]');if(row&&!event.target.closest('input,button,label')&&!row.classList.contains('logged'))swipe={x:event.clientX,y:event.clientY,eid:row.dataset.id,index:Number(row.dataset.row)};else swipe=null;});
-  document.addEventListener('pointerup',event=>{if(swipe&&event.clientX-swipe.x>65&&Math.abs(event.clientY-swipe.y)<40){const {eid,index}=swipe;if(mutate(s=>copyPrevious(s,eid,index,today)))buzz();}swipe=null;});
+  document.addEventListener('pointerdown',event=>{const row=event.target.closest('[data-row]');if(row&&!event.target.closest('input,textarea,button,label,.drop-rounds')&&!row.classList.contains('logged'))swipe={x:event.clientX,y:event.clientY,eid:row.dataset.id,index:Number(row.dataset.row)};else swipe=null;});
+  document.addEventListener('pointerup',event=>{if(swipe&&event.clientX-swipe.x>65&&Math.abs(event.clientY-swipe.y)<40){const {eid,index}=swipe;let copied=false;if(mutate(s=>{copied=copySetAbove(s,eid,index,today);},{message:'',render:false})&&copied){renderAll();buzz();toast('Copied set above.');}}swipe=null;});
   document.addEventListener('pointercancel',()=>{swipe=null;});
   $('#dialog').addEventListener('close',()=>{if(!$('#dialog').open){ui.modal=null;renderTop();renderMain();attachFloating();}});
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){tick();acquireWake();}else releaseWake();});

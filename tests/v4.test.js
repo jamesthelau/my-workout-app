@@ -32,7 +32,8 @@ test('equal timestamps follow log insertion order; undone counterpart restores o
 });
 test('paired, standalone 7-day and standalone 3-day states reset on local midnight boundaries across DST',()=>{
  const s=initialState();for(const eid of ['e1','e8','e20','e30','e21'])log(s,eid,'2026-10-30T23:59:00-07:00');
- for(const eid of ['e1','e8','e21']){assert.equal(level(s,eid,'2026-11-05'),'cold');assert.equal(level(s,eid,'2026-11-06'),'due');}
+ for(const eid of ['e1','e21']){assert.equal(level(s,eid,'2026-11-04'),'cold');assert.equal(level(s,eid,'2026-11-05'),'due');}
+ assert.equal(level(s,'e8','2026-11-05'),'cold');assert.equal(level(s,'e8','2026-11-06'),'due');
  for(const eid of ['e20','e30']){assert.equal(level(s,eid,'2026-11-01'),'cold');assert.equal(level(s,eid,'2026-11-02'),'due');}
 });
 test('reset epochs clear both sides without deleting history; unavailable or 3-day counterpart uses standalone rule',()=>{
@@ -56,7 +57,7 @@ test('real revision 8 migration preserves all logged data and editable prescript
  const s=JSON.parse(readFileSync(new URL('./fixtures/v8.json',import.meta.url),'utf8'));
  exerciseById(s,'e1').name='My press';exerciseById(s,'e1').sets=4;exerciseById(s,'e1').rest=[150,180];exerciseById(s,'e1').seat='Seat 4';s.groups.find(g=>g[0]==='chest')[1]='My chest';
  s.settings.volume=.23;for(const eid of ['e25','e29','e26'])log(s,eid);writeDraft(s,'e25',1,'weight','45x2','2026-10-19');addAlternate(s,'e29','EZ reverse curl',{},'reverse-alt');
- const before=copy(s),n=migrateState(s);assert.deepEqual(s,before);assert.equal(n.revision,9);
+ const before=copy(s),n=migrateState(s);assert.deepEqual(s,before);assert.equal(n.revision,10);
  for(const field of ['history','drafts','plans','timers','pinned','folders','clock','settings','fatigueResets','rest'])assert.deepEqual(n[field],before[field],field);
  assert.deepEqual(exerciseById(n,'e1'),exerciseById(s,'e1'));assert.equal(n.groups.find(g=>g[0]==='chest')[1],'My chest');assert.equal(exerciseById(n,'reverse-alt').group,'biceps');
  assert.equal(exerciseById(n,'e30').archived,false);assert.equal(exerciseById(n,'e30').restCycle,3);assert.equal(exerciseById(n,'e25').group,'calves');

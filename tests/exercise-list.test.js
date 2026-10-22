@@ -4,12 +4,12 @@ import {readFileSync} from 'node:fs';
 import {initialState,migrateState,validateState,exerciseById,logSet,copy,previousSet,writeDraft,addAlternate,fatigueGoal,targetSets,localDay,GROUPS} from '../app.js';
 const oldState=()=>JSON.parse(readFileSync(new URL('./fixtures/v7.json',import.meta.url),'utf8'));
 const at=new Date('2026-10-17T12:00:00'), day=localDay(at);
-test('revision 9 upgrades real revision 7 data without mixing replacement baselines',()=>{
+test('revision 10 upgrades real revision 7 data without mixing replacement baselines',()=>{
  const s=oldState();s.settings.volume=.23;s.settings.unit='kg';s.clock.elapsed=1234;
  for(const eid of ['e1','e16','e5','e6','e9','e10','e25','e27','e20'])logSet(s,eid,0,{weight:50,reps:8},at,`old-${eid}`);
  s.pinned=['e1','e20'];s.rest.e1=200;writeDraft(s,'e1',1,'weight','45x2',day);addAlternate(s,'e1','Custom press',{},'custom');
  const before=copy(s),n=migrateState(s);
- assert.deepEqual(s,before);assert.equal(n.revision,9);assert.equal(n.history.length,before.history.length);
+ assert.deepEqual(s,before);assert.equal(n.revision,10);assert.equal(n.history.length,before.history.length);
  for(const eid of ['e1','e16','e5','e6','e9','e10','e25','e27']){
   const archived=exerciseById(n,`v7-${eid}`);assert.ok(archived.archived);assert.equal(archived.name,exerciseById(before,eid).name);
   assert.deepEqual(n.history.find(r=>r.exerciseId===archived.id),{...before.history.find(r=>r.exerciseId===eid),exerciseId:archived.id});
@@ -25,7 +25,7 @@ test('existing two-set pec deck session stays complete while future sessions use
  delete s.plans[`${day}|e3`];const n=migrateState(s);assert.equal(targetSets(n,'e3',day),2);assert.equal(targetSets(n,'e3','2026-10-18'),3);assert.deepEqual(n.history,s.history);
 });
 test('older supported revisions upgrade through the same matrix and validate',()=>{
- for(const rev of [4,5,6]){const s=oldState();s.revision=rev;const n=migrateState(s);validateState(n);assert.equal(n.revision,9);assert.equal(n.exercises.filter(e=>!e.archived).length,32);assert.equal(fatigueGoal(n).daily,14);}
+ for(const rev of [4,5,6]){const s=oldState();s.revision=rev;const n=migrateState(s);validateState(n);assert.equal(n.revision,10);assert.equal(n.exercises.filter(e=>!e.archived).length,32);assert.equal(fatigueGoal(n).daily,14);}
 });
 test('32 active exercises retain three lower folders and merged delts with independent muscle tags',()=>{
  const s=initialState();assert.equal(s.exercises.filter(e=>!e.archived).length,32);
