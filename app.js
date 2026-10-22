@@ -1,3 +1,43 @@
+// Personal protocol text is preserved verbatim, not presented as verified advice.
+const supplementRows = [
+['multi','Premium Multivitamin','2 tablets','Morning, with a fat-containing meal.','Fills micronutrient gaps. Provides active, methylated B-vitamins for ATP production and chelated trace minerals. P5P (B6) acts as the co-factor needed to metabolize L-Tyrosine.','Minimal. Excreted in urine.','Daily'],
+['k2','Vitamin K2 (MK-7)','100 mcg','Morning, with the multivitamin and a fat source.','Bone calcification & arterial protection. Activates osteocalcin to pull calcium out of the bloodstream and shuttle it into the bone matrix.','Extremely safe. Fills the gap left by the multivitamin.','Daily'],
+['omega','Omega-3 (rTG Fish Oil)','1250mg (1 softgel)','Anytime, with food.','Systemic anti-inflammatory. Modulates eicosanoid pathways to reduce joint inflammation. DHA provides neural membrane integrity.','Sustained daily intake over 3,000mg can slightly thin the blood.','Daily'],
+['magnesium','Magnesium Glycinate','210mg - 420mg (1-2 caps)','30-60 minutes before bed. Away from heavy calcium meals.','CNS relaxation & enzymatic support. Binds to GABA receptors for deep sleep. Co-factor for protein synthesis.','Can cause morning grogginess or loose stools in extreme excess.','Daily'],
+['creatine','Creatine Monohydrate','5g (1 scoop)','Post-workout with a carb/protein source.','Intramuscular ATP regeneration. Saturates phosphocreatine stores for explosive exertion.','Taking >10g at once causes acute diarrhea. Requires 100+ oz of water daily to prevent cramping.','Daily'],
+['citrulline','L-Citrulline (Pure Base)','6g - 8g','45-60 mins pre-workout. (Pro-tip: Add 500mg sea salt).','Vasodilation. Bypasses liver metabolism to convert to L-Arginine, triggering nitric oxide for muscle pumps.','Drop in blood pressure if combined with other vasodilators.','Workout Days Only.'],
+['choline','CDP Choline (Citicoline)','300mg','Morning or 45 mins before cognitive demand. Never near bedtime.','Crosses blood-brain barrier to synthesize acetylcholine (focus) and uridine (dopamine receptor density).','"The Choline Blues". Metabolites have a 70+ hour half-life. Daily use stacks acetylcholine to a toxic ceiling, causing brain fog, sudden depressive symptoms, loss of motivation, and physical stiffness in the jaw/neck.','Cycled (3 Days ON / 4 Days OFF, or a 5/2 Split).'],
+['tyrosine','L-Tyrosine (Free-form)','500mg - 1000mg','30-45 mins pre-workout/exam. STRICTLY empty stomach.','Catecholamine precursor. Raw fuel converted into dopamine, norepinephrine, and epinephrine under acute stress.','The brain strictly guards homeostasis. Daily flooding of L-Tyrosine aggressively downregulates the Tyrosine Hydroxylase (TH) enzyme. It stops working entirely and causes rebound fatigue/apathy.','Cycled (1 to 3 times per week MAX).'],
+['ashwagandha','KSM-66 Ashwagandha','600mg','Evening or post-workout to blunt cortisol.','Adaptogenic herb that regulates the HPA axis, significantly lowering serum cortisol and blunting physical stress.','Chronic, unbroken cortisol suppression desensitizes serotonin receptors. Year-round use triggers anhedonia (emotional blunting, emotional numbness, complete loss of motivation). The OFF phase is biologically non-negotiable.','Cycled (4-8 weeks ON, 2-4 weeks OFF).'],
+['theanine','L-Theanine','200mg','30-45 mins pre-workout.','Increases alpha brain waves. Synergizes with caffeine to strip away physical jitters and anxiety while retaining the dopamine rush.','Actively blunts athletic aggression. Chronically elevating GABA/alpha waves while suppressing glutamate flattens your mood into a mellow baseline, turning into lethargy when you actually need raw drive and explosive power.','Tactical (Only taken with heavy stimulants/caffeine).']
+];
+export const SUPPLEMENTS=supplementRows.map(([id,name,dosage,timing,benefits,risks,protocol],i)=>({id,name,dosage,timing,benefits,risks,protocol,daily:i<5}));
+export const SAFETY_NOTES={
+ multi:'Not all excess vitamins are harmlessly excreted. High doses can be harmful; check the actual label and total intake, especially vitamin B6 and fat-soluble vitamins.',
+ k2:'Vitamin K can interact seriously with warfarin. Arterial protection from supplementation is not established for everyone.',
+ omega:'Fish oil weight is not the same as EPA + DHA content. Check the label; bleeding and other risks depend on dose, medicines and health conditions.',
+ magnesium:'Check elemental magnesium. The adult upper limit from supplements/medicines is 350 mg/day unless a clinician recommends otherwise. Excess causes diarrhea; kidney impairment raises toxicity risk. Sleep benefits are not guaranteed.',
+ creatine:'A universal 100+ oz water requirement and a strict 10 g diarrhea threshold are not established. Hydration needs vary; timing is less important than consistent intake.',
+ citrulline:'Blood-pressure effects and interactions matter. The salt addition is a personal protocol, not a universal requirement.',
+ choline:'The claimed toxic acetylcholine ceiling and mandatory cycling schedule are not established clinical rules. A metabolite half-life alone does not demonstrate toxic accumulation.',
+ tyrosine:'The claimed inevitable enzyme downregulation and rebound apathy are not established consequences of usual daily supplementation. This cycling schedule is a personal preference, not a validated safety limit.',
+ ashwagandha:'Long-term safety is uncertain. Rare liver injury and thyroid effects are documented. Avoid in pregnancy; medication interactions matter. Cycling has not been proven to prevent these risks or the claimed receptor effects.',
+ theanine:'The claimed inevitable mood flattening and loss of athletic power are not established. The stimulant combination and timing are personal protocol choices.'
+};
+export const SOURCES=[['NIH supplement fact sheets','https://ods.od.nih.gov/factsheets/list-all/'],['NIH magnesium','https://ods.od.nih.gov/factsheets/Magnesium-HealthProfessional/'],['NCCIH ashwagandha','https://www.nccih.nih.gov/health/ashwagandha']];
+export function supplementDates(s,id){return (s.supplementLog||[]).filter(r=>r.id===id).map(r=>r.day).sort().reverse();}
+export function setSupplement(s,id,day,checked){
+ if(!SUPPLEMENTS.some(x=>x.id===id))throw Error('Unknown supplement');
+ s.supplementLog=(s.supplementLog||[]).filter(r=>!(r.id===id&&r.day===day));
+ if(checked)s.supplementLog.push({id,day});
+}
+export function lastTaken(s,id,day){
+ const last=supplementDates(s,id)[0];if(!last)return 'Last taken: never';
+ const ordinal=d=>Date.UTC(...d.split('-').map((v,i)=>Number(v)-(i===1?1:0)))/86400000;
+ const n=ordinal(day)-ordinal(last);
+ return n===0?'Last taken: today':n===1?'Last taken: yesterday':n>1?`Last taken: ${n} days ago`:`Last taken: ${last}`;
+}
+
 // Model: one exercise ID is shared by the muscle list, folders and active tray.
 export const GROUPS = [
   ['chest','Chest','upper'],
@@ -700,7 +740,7 @@ export function ordinal(day) {
 }
 export const daysBetween = (earlier,later) => Math.max(0,ordinal(later)-ordinal(earlier));
 export function initialState() {
-  return {version:2,revision:10,groups:copy(GROUPS),hiddenGroups:[],exercises:copy(SEED),history:[],drafts:{},plans:{},epoch:0,fatigueResets:{},
+  return {version:2,revision:10,groups:copy(GROUPS),hiddenGroups:[],exercises:copy(SEED),history:[],supplementLog:[],drafts:{},plans:{},epoch:0,fatigueResets:{},
     folders:[{id:'cables',name:'Cable Station',exerciseIds:['e2','e6','e10','e15','e17','e18','e26','e5']}],
     pinned:[],timers:{},clock:{startedAt:null,elapsed:0,ended:false},
     settings:{unit:'lbs',sound:true,haptics:true,volume:0.6,hapticIntensity:0.5},rest:{}};
@@ -1148,6 +1188,10 @@ export function validateState(s,{allowMissingCooldown=false,legacy=false}={}) {
   const safeId=x=>string(x,100)&&/^[a-zA-Z0-9_-]+$/.test(x)&&!['__proto__','constructor','prototype'].includes(x);
   const validDay=x=>typeof x==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(x)&&Number.isFinite(ordinal(x))&&new Date(ordinal(x)*86400000).toISOString().slice(0,10)===x;
   if(!obj(s)||s.version!==2||!Array.isArray(s.exercises)||!Array.isArray(s.history)||!Array.isArray(s.folders)||!Array.isArray(s.pinned)||!obj(s.drafts)||!obj(s.plans)||!obj(s.timers)||!obj(s.rest)||!obj(s.clock)||!obj(s.settings)||!int(s.epoch,0,Number.MAX_SAFE_INTEGER))fail();
+  if(s.supplementLog!==undefined){
+    if(!Array.isArray(s.supplementLog))fail();
+    const seen=new Set();for(const r of s.supplementLog){if(!obj(r)||!SUPPLEMENTS.some(x=>x.id===r.id)||!validDay(r.day)||seen.has(`${r.id}|${r.day}`))fail();seen.add(`${r.id}|${r.day}`);}
+  }
   if(s.revision>=4){
     if(!Array.isArray(s.groups)||!Array.isArray(s.hiddenGroups))fail();
     const gids=new Set();for(const g of s.groups){if(!Array.isArray(g)||g.length!==3||!safeId(g[0])||gids.has(g[0])||!string(g[1],60)||!['upper','lower','core'].includes(g[2]))fail();gids.add(g[0]);}
@@ -1404,8 +1448,13 @@ function boot() {
   function closeModal(){$('#dialog').close();ui.modal=null;renderTop();renderMain();attachFloating();}
   function renderModal(){
     if(!ui.modal)return;
-    const {kind,id:eid}=ui.modal,original=eid?exerciseById(state,eid):null,root=eid?exerciseById(state,slotId(state,eid)):null,e=original?{...original,tier:root.tier,restCycle:root.restCycle,group:root.group}:null;
+    const {kind,id:eid}=ui.modal,original=eid?exerciseById(state,eid):null,root=original?exerciseById(state,slotId(state,eid)):null,e=original?{...original,tier:root.tier,restCycle:root.restCycle,group:root.group}:null;
     let content='';
+    if(kind==='supplements')content=head('DAILY LOG','Supplements')+`<div class="dialog-body supplement-list"><p class="hint">${today} · Tap a checkbox to log today; tap a name for history and protocol. Uncheck to undo today’s entry.</p>${[true,false].map(daily=>`<section><h3 class="eyebrow">${daily?'DAILIES':'CYCLED & TACTICAL'}</h3>${SUPPLEMENTS.filter(x=>x.daily===daily).map(x=>{const checked=supplementDates(state,x.id).includes(today);return `<div class="supplement-row"><button class="supplement-check" role="checkbox" aria-checked="${checked}" aria-label="${html(x.name)} taken today" data-action="supplement-check" data-id="${x.id}">${checked?'✓':'○'}</button><button class="supplement-name" data-action="supplement-info" data-id="${x.id}"><strong>${html(x.name)}</strong>${!daily?`<span class="last-taken">${lastTaken(state,x.id,today)}</span>`:''}</button></div>`;}).join('')}</section>`).join('')}<p class="hint">Personal protocols, not dosing advice. Checking an item records intake; it does not confirm safety or measure tolerance.</p></div>`;
+    if(kind==='supplement-info'){
+      const x=SUPPLEMENTS.find(x=>x.id===eid),dates=supplementDates(state,eid);
+      content=head('SUPPLEMENT HISTORY',x.name)+`<div class="dialog-body"><button class="text-button" data-action="supplements">← Checklist</button><h3>Taken on</h3><div class="supplement-history" tabindex="0" role="region" aria-label="Dates taken">${dates.length?dates.map(d=>`<div><time datetime="${d}">${d}</time></div>`).join(''):'<p class="hint">No logged dates yet.</p>'}</div><aside class="supplement-note"><strong>Evidence & safety note</strong><p>${html(SAFETY_NOTES[eid])}</p></aside><h3>Your supplied protocol</h3><p class="hint">Original text below is preserved as requested. Its claims are not all established medical facts.</p><dl class="supplement-info">${[['Target dosage',x.dosage],['Timing',x.timing],['Why / benefits',x.benefits],['Risks of overuse',x.risks],['Cycling protocol',x.protocol]].map(([k,v])=>`<dt>${k}</dt><dd>${html(v)}</dd>`).join('')}</dl><details><summary>Reference sources</summary>${SOURCES.map(([name,url])=>`<p><a href="${url}" target="_blank" rel="noopener noreferrer">${name}</a></p>`).join('')}<p class="hint">References require an internet connection.</p></details></div>`;
+    }
     if(kind==='log')content=head(state.groups.find(g=>g[0]===e.group)[1],e.name)+`<div class="dialog-body">${activeIds(state).length?`<nav class="superset-tabs" aria-label="Active superset">${activeIds(state).map((pid,i)=>`<button data-action="open" data-id="${pid}" class="${pid===eid?'selected':''}"><span>${String.fromCharCode(65+i)}</span>${html(exerciseById(state,pid).name)}<small data-countdown="${pid}"></small></button>`).join('')}</nav>`:''}${logger(e)}</div>`;
     if(kind==='alternate')content=head('INDEPENDENT HISTORY','Add custom alternate',true)+`<form id="alternate-form" class="dialog-body" data-parent="${eid}"><p class="hint">Under ${html(e.name)}. This variation keeps its own weights, reps and seat memory. It shares this movement slot’s cooldown and points.</p><label>Name<input name="name" type="text" maxlength="100" required placeholder="e.g. Lying Leg Curl" autocomplete="off"></label><div class="form-grid"><label>Sets<input type="number" name="sets" value="${e.sets}" min="1" max="10" required></label></div><label>Rep range<input type="text" name="reps" value="${html(e.reps)}" maxlength="30" required></label><label>Target RIR<input name="rir" maxlength="5" value="${html(e.rir||'')}" placeholder="e.g. 1–2"></label><p class="hint">Rest is inherited from the parent. Completing any variation satisfies the same movement slot.</p><button class="primary full" type="submit">Create alternate</button><p id="form-error" class="error" tabindex="-1" role="alert"></p></form>`;
     if(kind==='folder'){
@@ -1475,6 +1524,9 @@ function boot() {
     const point=event.target.closest('[data-point]');if(point){ui.graphPoint=Number(point.dataset.point);renderModal();return;}
     const b=event.target.closest('[data-action]');if(!b)return;const a=b.dataset.action,eid=b.dataset.id,index=Number(b.dataset.index);
     if(b.closest('summary'))event.preventDefault();
+    if(a==='supplements'){showModal('supplements');return;}
+    if(a==='supplement-info'){showModal('supplement-info',eid);return;}
+    if(a==='supplement-check'){today=localDay();mutate(s=>setSupplement(s,eid,today,!supplementDates(s,eid).includes(today)));return;}
     if(a==='edit-exercise'){showModal('edit-exercise',eid);return;}
     if(a==='edit-group'){showModal('edit-group',null,{groupId:eid});return;}
     if(a==='add-exercise'){showModal('new-exercise',null,{groupId:eid});return;}
@@ -1588,7 +1640,7 @@ function boot() {
     const summary=target.closest('summary');
     if(summary){const d=summary.parentElement;if(d.dataset.exercise)return ()=>showModal('edit-exercise',d.dataset.exercise);if(d.dataset.group)return ()=>showModal('edit-group',null,{groupId:d.dataset.group});if(d.dataset.folder)return ()=>showModal('folder',null,{folderId:d.dataset.folder});}
     const pin=target.closest('.pin-card');if(pin)return ()=>showModal('edit-exercise',pin.dataset.id);
-    if(target.closest('#dialog-title')&&ui.modal?.id)return ()=>showModal('edit-exercise',ui.modal.id);
+    if(target.closest('#dialog-title')&&ui.modal?.id&&exerciseById(state,ui.modal.id))return ()=>showModal('edit-exercise',ui.modal.id);
     return null;
   }
   function cancelHold(){if(hold)clearTimeout(hold.timer);hold=null;}

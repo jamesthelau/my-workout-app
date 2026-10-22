@@ -90,4 +90,13 @@ test('UI event flow auto-fills, collapses, restores captured Y, pins and renders
  for(const fn of listeners.pointerup||[])fn({target:swipeTarget,clientX:110,clientY:105});
  const copied=JSON.parse(raw).drafts[`${dropRecord.day}|e1|2`];assert.equal(copied.weight,'100');assert.equal(copied.reps,'8');assert.equal(copied.drops,undefined);
  click('settings');click('misc-tab',{tab:'hardware'});assert.match(nodes.get('#dialog-content').innerHTML,/id="volume"/);assert.match(nodes.get('#dialog-content').innerHTML,/id="hapticIntensity"/);assert.ok(!readFileSync(new URL('../index.html',import.meta.url),'utf8').includes('timer-dock'));
+ click('supplements');assert.match(nodes.get('#dialog-content').innerHTML,/CYCLED &amp; TACTICAL|CYCLED & TACTICAL/);
+ const historyBefore=JSON.parse(raw).history;
+ click('supplement-check',{id:'choline'});assert.match(nodes.get('#dialog-content').innerHTML,/Last taken: today/);
+ assert.equal(JSON.parse(raw).supplementLog.length,1);
+ click('supplement-info',{id:'choline'});assert.match(nodes.get('#dialog-content').innerHTML,/Your supplied protocol/);assert.match(nodes.get('#dialog-content').innerHTML,/Evidence & safety note/);
+ assert.ok(nodes.get('#dialog-content').innerHTML.includes(JSON.parse(raw).supplementLog[0].day));
+ click('supplements');click('supplement-check',{id:'choline'});assert.equal(JSON.parse(raw).supplementLog.length,0);
+ assert.deepEqual(JSON.parse(raw).history,historyBefore);
+
 });

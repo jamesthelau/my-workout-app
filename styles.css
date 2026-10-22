@@ -80,3 +80,18 @@ html{overflow-anchor:none;scroll-behavior:auto}.fatigue-progress{appearance:none
 .drop-round button{padding:0;min-height:44px;background:transparent;color:var(--muted)}
 .drop-add{min-height:44px;padding:6px 8px;background:transparent;border:0;color:var(--muted);font-size:12px}
 .set-num{touch-action:pan-y}.set-row{touch-action:pan-y}
+
+/* Supplement checklist stays outside the workout navigation. */
+.supplement-launch {margin-left:auto;flex-shrink:0}
+.supplement-list section + section {margin-top:28px}
+.supplement-row {display:flex;align-items:center;gap:8px;border-bottom:1px solid #252525;padding:8px 0}
+.supplement-check {min-width:48px;min-height:48px;font-size:25px;color:#888;border:0;background:transparent}
+.supplement-check[aria-checked="true"] {color:#c9f58b}
+.supplement-name {flex:1;min-width:0;text-align:left;white-space:normal;overflow-wrap:anywhere;background:transparent;border:0;padding:10px 4px}
+.supplement-name strong {display:block;font-size:15px;line-height:1.4}
+.last-taken {display:block;width:fit-content;margin-top:6px;color:#e6d69b;background:#292619;border-radius:6px;padding:4px 7px;font-size:12px;font-weight:600}
+.supplement-history {max-height:150px;overflow:auto;border-block:1px solid #333;margin-bottom:22px}
+.supplement-history div {padding:10px 0;font-variant-numeric:tabular-nums}
+.supplement-note {padding:14px;background:#242318;border-radius:10px;font-size:13px;line-height:1.6;color:#e2dcc3}
+.supplement-info dt {color:#aaa;font-size:12px;margin-top:20px;text-transform:uppercase;letter-spacing:.05em}
+.supplement-info dd {margin:7px 0 20px;line-height:1.65;font-size:14px;overflow-wrap:anywhere}
