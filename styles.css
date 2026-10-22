@@ -95,3 +95,12 @@ html{overflow-anchor:none;scroll-behavior:auto}.fatigue-progress{appearance:none
 .supplement-note {padding:14px;background:#242318;border-radius:10px;font-size:13px;line-height:1.6;color:#e2dcc3}
 .supplement-info dt {color:#aaa;font-size:12px;margin-top:20px;text-transform:uppercase;letter-spacing:.05em}
 .supplement-info dd {margin:7px 0 20px;line-height:1.65;font-size:14px;overflow-wrap:anywhere}
+.supplement-dose {padding:16px;border:1px solid #455b31;background:#151f10;border-radius:12px;overflow-wrap:anywhere}
+.supplement-dose strong {display:block;font-size:19px;line-height:1.4;margin:8px 0;color:#d8f7b1}
+.supplement-dose p,.supplement-section p {font-size:14px;line-height:1.7}
+.supplement-section {padding:20px 0;border-bottom:1px solid #292929}
+.supplement-detail h3 {font-size:14px;margin-bottom:9px}
+.supplement-detail .supplement-note {margin-top:20px}
+.supplement-detail details {margin-top:18px;font-size:13px;line-height:1.6}
+.supplement-detail details p {margin-top:12px}
+.supplement-optional {display:block;color:#aebda0;margin-top:4px;font-size:12px}

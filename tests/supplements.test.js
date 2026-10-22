@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {initialState,migrateState,validateState,localDay,SUPPLEMENTS,setSupplement,supplementDates,lastTaken} from '../app.js';
-test('ten protocols, five daily and five tactical; logging is idempotent and independent',()=>{
- const s=initialState();assert.equal(SUPPLEMENTS.length,10);assert.equal(SUPPLEMENTS.filter(x=>x.daily).length,5);
+test('ten protocols, seven daily and three tactical; logging is idempotent and independent',()=>{
+ const s=initialState();assert.equal(SUPPLEMENTS.length,10);assert.equal(SUPPLEMENTS.filter(x=>x.daily).length,7);
  setSupplement(s,'multi','2026-10-22',true);setSupplement(s,'multi','2026-10-22',true);
  setSupplement(s,'choline','2026-10-22',true);assert.equal(s.supplementLog.length,2);assert.equal(s.history.length,0);
  setSupplement(s,'multi','2026-10-22',false);assert.deepEqual(s.supplementLog,[{id:'choline',day:'2026-10-22'}]);

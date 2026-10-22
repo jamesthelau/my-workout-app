@@ -94,9 +94,12 @@ test('UI event flow auto-fills, collapses, restores captured Y, pins and renders
  const historyBefore=JSON.parse(raw).history;
  click('supplement-check',{id:'choline'});assert.match(nodes.get('#dialog-content').innerHTML,/Last taken: today/);
  assert.equal(JSON.parse(raw).supplementLog.length,1);
- click('supplement-info',{id:'choline'});assert.match(nodes.get('#dialog-content').innerHTML,/Your supplied protocol/);assert.match(nodes.get('#dialog-content').innerHTML,/Evidence & safety note/);
+ click('supplement-info',{id:'choline'});assert.match(nodes.get('#dialog-content').innerHTML,/Why this schedule/);assert.match(nodes.get('#dialog-content').innerHTML,/Important notes/);
  assert.ok(nodes.get('#dialog-content').innerHTML.includes(JSON.parse(raw).supplementLog[0].day));
- click('supplements');click('supplement-check',{id:'choline'});assert.equal(JSON.parse(raw).supplementLog.length,0);
+ click('close');assert.equal(nodes.get('#dialog').open,true);assert.match(nodes.get('#dialog-content').innerHTML,/CYCLED & TACTICAL/);
+ click('supplement-info',{id:'theanine'});assert.match(nodes.get('#dialog-content').innerHTML,/200 mg/);
+ let prevented=false;nodes.get('#dialog').events.cancel({preventDefault(){prevented=true;}});assert.equal(prevented,true);assert.match(nodes.get('#dialog-content').innerHTML,/CYCLED & TACTICAL/);
+ click('close');assert.equal(nodes.get('#dialog').open,false);click('supplements');click('supplement-check',{id:'choline'});assert.equal(JSON.parse(raw).supplementLog.length,0);
  assert.deepEqual(JSON.parse(raw).history,historyBefore);
 
 });

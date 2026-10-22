@@ -14,7 +14,7 @@ test('offline cache returns app shell/assets and removes only this app’s old c
   const script=await readFile(new URL('sw.js',root),'utf8');
   const scope='https://example.github.io/flex-log/',handlers={},store=new Map(),deleted=[];
   const self={registration:{scope},location:{origin:'https://example.github.io'},clients:{claim:async()=>{}},addEventListener:(type,fn)=>{handlers[type]=fn;}};
-  const current=`flex-log-v2:${scope}:6.2.0`;
+  const current=`flex-log-v2:${scope}:6.3.0`;
   let added=[];
   const caches={open:async()=>({addAll:async urls=>{added=urls;urls.forEach(url=>store.set(url,{url}));},match:async url=>store.get(url)}),keys:async()=>[current,`flex-log-v2:${scope}:old`,'unrelated'],delete:async key=>deleted.push(key)};
   vm.runInNewContext(script,{self,caches,URL,fetch:()=>{throw Error('Unexpected network call');}});

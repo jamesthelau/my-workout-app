@@ -1,30 +1,180 @@
-// Personal protocol text is preserved verbatim, not presented as verified advice.
-const supplementRows = [
-['multi','Premium Multivitamin','2 tablets','Morning, with a fat-containing meal.','Fills micronutrient gaps. Provides active, methylated B-vitamins for ATP production and chelated trace minerals. P5P (B6) acts as the co-factor needed to metabolize L-Tyrosine.','Minimal. Excreted in urine.','Daily'],
-['k2','Vitamin K2 (MK-7)','100 mcg','Morning, with the multivitamin and a fat source.','Bone calcification & arterial protection. Activates osteocalcin to pull calcium out of the bloodstream and shuttle it into the bone matrix.','Extremely safe. Fills the gap left by the multivitamin.','Daily'],
-['omega','Omega-3 (rTG Fish Oil)','1250mg (1 softgel)','Anytime, with food.','Systemic anti-inflammatory. Modulates eicosanoid pathways to reduce joint inflammation. DHA provides neural membrane integrity.','Sustained daily intake over 3,000mg can slightly thin the blood.','Daily'],
-['magnesium','Magnesium Glycinate','210mg - 420mg (1-2 caps)','30-60 minutes before bed. Away from heavy calcium meals.','CNS relaxation & enzymatic support. Binds to GABA receptors for deep sleep. Co-factor for protein synthesis.','Can cause morning grogginess or loose stools in extreme excess.','Daily'],
-['creatine','Creatine Monohydrate','5g (1 scoop)','Post-workout with a carb/protein source.','Intramuscular ATP regeneration. Saturates phosphocreatine stores for explosive exertion.','Taking >10g at once causes acute diarrhea. Requires 100+ oz of water daily to prevent cramping.','Daily'],
-['citrulline','L-Citrulline (Pure Base)','6g - 8g','45-60 mins pre-workout. (Pro-tip: Add 500mg sea salt).','Vasodilation. Bypasses liver metabolism to convert to L-Arginine, triggering nitric oxide for muscle pumps.','Drop in blood pressure if combined with other vasodilators.','Workout Days Only.'],
-['choline','CDP Choline (Citicoline)','300mg','Morning or 45 mins before cognitive demand. Never near bedtime.','Crosses blood-brain barrier to synthesize acetylcholine (focus) and uridine (dopamine receptor density).','"The Choline Blues". Metabolites have a 70+ hour half-life. Daily use stacks acetylcholine to a toxic ceiling, causing brain fog, sudden depressive symptoms, loss of motivation, and physical stiffness in the jaw/neck.','Cycled (3 Days ON / 4 Days OFF, or a 5/2 Split).'],
-['tyrosine','L-Tyrosine (Free-form)','500mg - 1000mg','30-45 mins pre-workout/exam. STRICTLY empty stomach.','Catecholamine precursor. Raw fuel converted into dopamine, norepinephrine, and epinephrine under acute stress.','The brain strictly guards homeostasis. Daily flooding of L-Tyrosine aggressively downregulates the Tyrosine Hydroxylase (TH) enzyme. It stops working entirely and causes rebound fatigue/apathy.','Cycled (1 to 3 times per week MAX).'],
-['ashwagandha','KSM-66 Ashwagandha','600mg','Evening or post-workout to blunt cortisol.','Adaptogenic herb that regulates the HPA axis, significantly lowering serum cortisol and blunting physical stress.','Chronic, unbroken cortisol suppression desensitizes serotonin receptors. Year-round use triggers anhedonia (emotional blunting, emotional numbness, complete loss of motivation). The OFF phase is biologically non-negotiable.','Cycled (4-8 weeks ON, 2-4 weeks OFF).'],
-['theanine','L-Theanine','200mg','30-45 mins pre-workout.','Increases alpha brain waves. Synergizes with caffeine to strip away physical jitters and anxiety while retaining the dopamine rush.','Actively blunts athletic aggression. Chronically elevating GABA/alpha waves while suppressing glutamate flattens your mood into a mellow baseline, turning into lethargy when you actually need raw drive and explosive power.','Tactical (Only taken with heavy stimulants/caffeine).']
+// User-selected schedules with evidence-qualified notes. Reviewed 2026-10-22.
+export const SUPPLEMENTS=[
+  {
+    "id": "multi",
+    "name": "Premium Multivitamin",
+    "daily": true,
+    "dosage": "2 tablets; verify the product serving size.",
+    "protocol": "Daily.",
+    "timing": "With breakfast or another meal containing some fat.",
+    "benefits": "Helps fill dietary micronutrient gaps. B vitamins support normal energy metabolism; they do not provide extra energy when intake is already adequate.",
+    "reason": "No routine cycling needed at appropriate label doses. Product ingredients are not confirmed from the name alone.",
+    "risks": "Check total B6, vitamin A, zinc and iron across products. Excess is not all harmlessly excreted; chronic excess B6 can damage nerves. Methylated forms are not universally superior. Prefer a third-party-tested product.",
+    "sources": [
+      [
+        "NIH: Multivitamins",
+        "https://ods.od.nih.gov/factsheets/MVMS-Consumer/"
+      ]
+    ]
+  },
+  {
+    "id": "k2",
+    "name": "Vitamin K2 (MK-7)",
+    "daily": true,
+    "dosage": "100 mcg.",
+    "protocol": "Daily.",
+    "timing": "With a meal containing fat; can accompany the multivitamin.",
+    "benefits": "Supports vitamin-K-dependent proteins involved in clotting and bone metabolism.",
+    "reason": "No established cycling requirement. It is not proven to remove arterial calcium or prevent cardiovascular disease in everyone.",
+    "risks": "Major interaction with warfarin: do not start, stop or change intake without the prescriber. Check whether the multivitamin already contains vitamin K.",
+    "sources": [
+      [
+        "NIH: Vitamin K",
+        "https://ods.od.nih.gov/factsheets/VitaminK-HealthProfessional/"
+      ]
+    ]
+  },
+  {
+    "id": "omega",
+    "name": "Omega-3 (rTG Fish Oil)",
+    "daily": true,
+    "dosage": "1 softgel labeled 1,250 mg fish oil; verify EPA + DHA separately.",
+    "protocol": "Daily.",
+    "timing": "With food, at a convenient meal.",
+    "benefits": "EPA and DHA contribute to cell membranes and signaling; DHA is important in neural tissue. Benefits depend on diet and the outcome being treated.",
+    "reason": "No routine cycling requirement. Total oil weight does not equal active EPA + DHA content.",
+    "risks": "May cause fishy burps or stomach upset. Review anticoagulant use. High-dose 4 g/day regimens increased atrial fibrillation in some cardiovascular-risk trials; do not escalate casually. There is no universal 3,000 mg bleeding threshold.",
+    "sources": [
+      [
+        "NIH: Omega-3",
+        "https://ods.od.nih.gov/factsheets/Omega3FattyAcids-HealthProfessional/"
+      ]
+    ]
+  },
+  {
+    "id": "magnesium",
+    "name": "Magnesium Glycinate",
+    "daily": true,
+    "dosage": "Your listed range: 210–420 mg; confirm this is elemental magnesium and verify capsule count.",
+    "protocol": "Daily; review the higher dose.",
+    "timing": "Evening, 30–60 minutes before bed if convenient; food may improve tolerance.",
+    "benefits": "Supports normal nerve, muscle and enzyme function. Evidence for improving sleep in people without deficiency is limited.",
+    "reason": "No cycling requirement. There is no universal need to avoid ordinary calcium-containing meals.",
+    "risks": "420 mg exceeds the US 350 mg/day upper limit from supplements/medicines unless clinician-directed; food magnesium is excluded. Diarrhea is common with excess; kidney impairment raises toxicity risk. Separate from certain antibiotics and osteoporosis medicines according to pharmacist instructions.",
+    "sources": [
+      [
+        "NIH: Magnesium",
+        "https://ods.od.nih.gov/factsheets/Magnesium-HealthProfessional/"
+      ]
+    ]
+  },
+  {
+    "id": "creatine",
+    "name": "Creatine Monohydrate",
+    "daily": true,
+    "dosage": "10 g/day — your selected target; usual maintenance is 3–5 g/day.",
+    "protocol": "Daily, including rest days.",
+    "timing": "Any consistent time. If using 10 g, split into 5 g twice daily to improve stomach tolerance.",
+    "benefits": "Increases muscle phosphocreatine availability for repeated high-intensity efforts and training adaptation.",
+    "reason": "No routine cycling needed. More than the usual maintenance dose does not automatically improve results.",
+    "risks": "Can cause water-weight gain and GI upset. Hydrate for heat, sweat and thirst; no universal 100+ oz requirement. Discuss use with a clinician if you have kidney disease; tell them before kidney blood tests, since creatinine can rise without proving kidney injury.",
+    "sources": [
+      [
+        "NIH: Exercise supplements",
+        "https://ods.od.nih.gov/factsheets/ExerciseAndAthleticPerformance-HealthProfessional/"
+      ]
+    ]
+  },
+  {
+    "id": "citrulline",
+    "name": "L-Citrulline (Pure Base)",
+    "daily": true,
+    "dosage": "6–8 g — your selected dose.",
+    "protocol": "Daily by your preference; daily use is not an established requirement.",
+    "timing": "Workout days: 45–60 minutes before training. Rest days: any consistent time.",
+    "benefits": "Raises arginine availability for nitric-oxide production; exercise-performance findings are mixed.",
+    "reason": "No established cycling rule. Long-term daily safety at this dose is less well characterized than creatine.",
+    "risks": "May upset the stomach or lower blood pressure. Review use with blood-pressure medicines, nitrates or erectile-dysfunction medicines. Pure citrulline and citrulline malate are not gram-for-gram equivalent. Added salt is optional, not required.",
+    "sources": [
+      [
+        "NIH: Exercise supplements",
+        "https://ods.od.nih.gov/factsheets/ExerciseAndAthleticPerformance-HealthProfessional/"
+      ]
+    ]
+  },
+  {
+    "id": "choline",
+    "name": "CDP-Choline (Citicoline)",
+    "daily": false,
+    "dosage": "300 mg.",
+    "protocol": "3 nonconsecutive days/week, e.g. Mon/Wed/Sat — your chosen schedule.",
+    "timing": "Morning or before cognitive demand; avoid late dosing if it disrupts sleep.",
+    "benefits": "Supplies choline for acetylcholine and phospholipid synthesis. Some trials suggest memory benefits; faster processing and better learning are not guaranteed.",
+    "reason": "Spacing limits exposure and gives off-days to assess your response. It is not proven necessary to prevent acetylcholine toxicity: 500 mg daily has been studied for 12 weeks. A long metabolite half-life does not establish a toxic ceiling.",
+    "risks": "“Choline blues” is not a validated diagnosis or inevitable daily-use effect. Stop and reassess new brain fog, jaw tension, low mood or lethargy rather than assuming a neurotransmitter cause; seek care for persistent symptoms. Daily trial use does not establish indefinite safety for everyone.",
+    "sources": [
+      [
+        "Citicoline: 12-week randomized trial",
+        "https://pubmed.ncbi.nlm.nih.gov/33978188/"
+      ]
+    ]
+  },
+  {
+    "id": "tyrosine",
+    "name": "L-Tyrosine (Free-form)",
+    "daily": false,
+    "dosage": "500 mg — your selected dose; benefit at this dose is uncertain.",
+    "protocol": "1–3 times/week for demanding days — your personal cap, not a validated safety threshold.",
+    "timing": "Prefer between meals, away from a protein-heavy meal or shake; your planned timing is 30–45 minutes before demand.",
+    "benefits": "Precursor for dopamine and norepinephrine. Small studies suggest benefits under acute stress or demanding tasks, not a guaranteed everyday dopamine boost.",
+    "reason": "Other large neutral amino acids compete for transport into the brain. Separating a dose from protein may make exposure more predictable; taking it with food does not make it toxic or automatically ineffective. No precise fasting interval is established.",
+    "risks": "No good human evidence shows ordinary daily use inevitably downregulates tyrosine hydroxylase or damages baseline dopamine production. Limit unnecessary use because long-term benefit/safety is uncertain, not to prevent a proven shutdown. Do not increase the dose just to chase an effect; review medicines and health conditions with a pharmacist.",
+    "sources": [
+      [
+        "Tyrosine: multitasking trial",
+        "https://pubmed.ncbi.nlm.nih.gov/10548261/"
+      ],
+      [
+        "Meals and competing amino acids",
+        "https://pubmed.ncbi.nlm.nih.gov/12499331/"
+      ]
+    ]
+  },
+  {
+    "id": "ashwagandha",
+    "name": "KSM-66 Ashwagandha",
+    "daily": false,
+    "dosage": "600 mg/day during ON periods; extract strengths vary.",
+    "protocol": "Your cycle: 4–8 weeks ON, 2–4 weeks OFF; reassess before restarting.",
+    "timing": "Evening; with food if needed for stomach tolerance. No established need to take it immediately post-workout.",
+    "benefits": "Some preparations may reduce stress and improve sleep; results are extract-specific and studies are generally short.",
+    "reason": "Evidence mainly covers short-term use, up to about 3 months. This cycle is not proven to prevent tolerance, anhedonia, receptor changes or liver injury.",
+    "risks": "Can cause drowsiness/GI upset; rare liver injury and thyroid effects matter. Stop and seek care for jaundice, dark urine or severe abdominal pain. Avoid during pregnancy/breastfeeding and review thyroid/autoimmune disease, surgery, sedatives and blood-pressure/diabetes medicines. Persistent emotional blunting warrants stopping and assessment.",
+    "sources": [
+      [
+        "NCCIH: Ashwagandha",
+        "https://www.nccih.nih.gov/health/ashwagandha"
+      ]
+    ]
+  },
+  {
+    "id": "theanine",
+    "name": "L-Theanine",
+    "daily": true,
+    "dosage": "200 mg.",
+    "protocol": "Daily or as needed; skipping is fine.",
+    "timing": "Evening for relaxation/sleep, or with daytime caffeine. Your preference: skip immediately before heavy lifting unless deliberately pairing with caffeine.",
+    "benefits": "May support relaxation and some sleep measures. Alpha-wave effects are not proof of better sleep or cognition for everyone.",
+    "reason": "A small trial studied 200 mg daily for 4 weeks. No established cycling requirement; long-term data are limited.",
+    "risks": "Some people feel too relaxed or drowsy for heavy training; avoid pre-workout use if this occurs. It is not proven to reduce strength or “athletic aggression” universally. Caffeine does not guarantee reversal of drowsiness, and theanine does not make excessive stimulant doses safe. Watch additive drowsiness with other calming products.",
+    "sources": [
+      [
+        "Theanine: 200 mg/day randomized trial",
+        "https://pubmed.ncbi.nlm.nih.gov/31623400/"
+      ]
+    ]
+  }
 ];
-export const SUPPLEMENTS=supplementRows.map(([id,name,dosage,timing,benefits,risks,protocol],i)=>({id,name,dosage,timing,benefits,risks,protocol,daily:i<5}));
-export const SAFETY_NOTES={
- multi:'Not all excess vitamins are harmlessly excreted. High doses can be harmful; check the actual label and total intake, especially vitamin B6 and fat-soluble vitamins.',
- k2:'Vitamin K can interact seriously with warfarin. Arterial protection from supplementation is not established for everyone.',
- omega:'Fish oil weight is not the same as EPA + DHA content. Check the label; bleeding and other risks depend on dose, medicines and health conditions.',
- magnesium:'Check elemental magnesium. The adult upper limit from supplements/medicines is 350 mg/day unless a clinician recommends otherwise. Excess causes diarrhea; kidney impairment raises toxicity risk. Sleep benefits are not guaranteed.',
- creatine:'A universal 100+ oz water requirement and a strict 10 g diarrhea threshold are not established. Hydration needs vary; timing is less important than consistent intake.',
- citrulline:'Blood-pressure effects and interactions matter. The salt addition is a personal protocol, not a universal requirement.',
- choline:'The claimed toxic acetylcholine ceiling and mandatory cycling schedule are not established clinical rules. A metabolite half-life alone does not demonstrate toxic accumulation.',
- tyrosine:'The claimed inevitable enzyme downregulation and rebound apathy are not established consequences of usual daily supplementation. This cycling schedule is a personal preference, not a validated safety limit.',
- ashwagandha:'Long-term safety is uncertain. Rare liver injury and thyroid effects are documented. Avoid in pregnancy; medication interactions matter. Cycling has not been proven to prevent these risks or the claimed receptor effects.',
- theanine:'The claimed inevitable mood flattening and loss of athletic power are not established. The stimulant combination and timing are personal protocol choices.'
-};
-export const SOURCES=[['NIH supplement fact sheets','https://ods.od.nih.gov/factsheets/list-all/'],['NIH magnesium','https://ods.od.nih.gov/factsheets/Magnesium-HealthProfessional/'],['NCCIH ashwagandha','https://www.nccih.nih.gov/health/ashwagandha']];
 export function supplementDates(s,id){return (s.supplementLog||[]).filter(r=>r.id===id).map(r=>r.day).sort().reverse();}
 export function setSupplement(s,id,day,checked){
  if(!SUPPLEMENTS.some(x=>x.id===id))throw Error('Unknown supplement');
@@ -1450,10 +1600,10 @@ function boot() {
     if(!ui.modal)return;
     const {kind,id:eid}=ui.modal,original=eid?exerciseById(state,eid):null,root=original?exerciseById(state,slotId(state,eid)):null,e=original?{...original,tier:root.tier,restCycle:root.restCycle,group:root.group}:null;
     let content='';
-    if(kind==='supplements')content=head('DAILY LOG','Supplements')+`<div class="dialog-body supplement-list"><p class="hint">${today} · Tap a checkbox to log today; tap a name for history and protocol. Uncheck to undo today’s entry.</p>${[true,false].map(daily=>`<section><h3 class="eyebrow">${daily?'DAILIES':'CYCLED & TACTICAL'}</h3>${SUPPLEMENTS.filter(x=>x.daily===daily).map(x=>{const checked=supplementDates(state,x.id).includes(today);return `<div class="supplement-row"><button class="supplement-check" role="checkbox" aria-checked="${checked}" aria-label="${html(x.name)} taken today" data-action="supplement-check" data-id="${x.id}">${checked?'✓':'○'}</button><button class="supplement-name" data-action="supplement-info" data-id="${x.id}"><strong>${html(x.name)}</strong>${!daily?`<span class="last-taken">${lastTaken(state,x.id,today)}</span>`:''}</button></div>`;}).join('')}</section>`).join('')}<p class="hint">Personal protocols, not dosing advice. Checking an item records intake; it does not confirm safety or measure tolerance.</p></div>`;
+    if(kind==='supplements')content=head('DAILY LOG','Supplements')+`<div class="dialog-body supplement-list"><p class="hint">${today} · Tap a checkbox to log today; tap a name for history and protocol. Uncheck to undo today’s entry.</p>${[true,false].map(daily=>`<section><h3 class="eyebrow">${daily?'DAILIES':'CYCLED & TACTICAL'}</h3>${SUPPLEMENTS.filter(x=>x.daily===daily).map(x=>{const checked=supplementDates(state,x.id).includes(today);return `<div class="supplement-row"><button class="supplement-check" role="checkbox" aria-checked="${checked}" aria-label="${html(x.name)} taken today" data-action="supplement-check" data-id="${x.id}">${checked?'✓':'○'}</button><button class="supplement-name" data-action="supplement-info" data-id="${x.id}"><strong>${html(x.name)}</strong>${x.id==='theanine'?'<small class="supplement-optional">Daily / as needed</small>':''}${!daily?`<span class="last-taken">${lastTaken(state,x.id,today)}</span>`:''}</button></div>`;}).join('')}</section>`).join('')}<p class="hint">Personal protocols, not dosing advice. Checking an item records intake; it does not confirm safety or measure tolerance.</p></div>`;
     if(kind==='supplement-info'){
       const x=SUPPLEMENTS.find(x=>x.id===eid),dates=supplementDates(state,eid);
-      content=head('SUPPLEMENT HISTORY',x.name)+`<div class="dialog-body"><button class="text-button" data-action="supplements">← Checklist</button><h3>Taken on</h3><div class="supplement-history" tabindex="0" role="region" aria-label="Dates taken">${dates.length?dates.map(d=>`<div><time datetime="${d}">${d}</time></div>`).join(''):'<p class="hint">No logged dates yet.</p>'}</div><aside class="supplement-note"><strong>Evidence & safety note</strong><p>${html(SAFETY_NOTES[eid])}</p></aside><h3>Your supplied protocol</h3><p class="hint">Original text below is preserved as requested. Its claims are not all established medical facts.</p><dl class="supplement-info">${[['Target dosage',x.dosage],['Timing',x.timing],['Why / benefits',x.benefits],['Risks of overuse',x.risks],['Cycling protocol',x.protocol]].map(([k,v])=>`<dt>${k}</dt><dd>${html(v)}</dd>`).join('')}</dl><details><summary>Reference sources</summary>${SOURCES.map(([name,url])=>`<p><a href="${url}" target="_blank" rel="noopener noreferrer">${name}</a></p>`).join('')}<p class="hint">References require an internet connection.</p></details></div>`;
+      content=head('SUPPLEMENT DETAILS',x.name).replace('aria-label="Close"','aria-label="Back to supplement checklist"')+`<div class="dialog-body supplement-detail"><div class="supplement-dose"><span class="eyebrow">YOUR DOSE & SCHEDULE</span><strong>${html(x.dosage)}</strong><p>${html(x.protocol)}</p></div><section class="supplement-section"><h3>When to take it</h3><p>${html(x.timing)}</p></section><section class="supplement-section"><h3>Purpose & evidence</h3><p>${html(x.benefits)}</p></section><section class="supplement-section"><h3>Why this schedule?</h3><p>${html(x.reason)}</p></section><aside class="supplement-note"><h3>Important notes</h3><p>${html(x.risks)}</p></aside><section class="supplement-section"><h3>Taken on · ${dates.length}</h3><div class="supplement-history" tabindex="0" role="region" aria-label="Dates taken">${dates.length?dates.map(d=>`<div><time datetime="${d}">${d}</time></div>`).join(''):'<p class="hint">No logged dates yet.</p>'}</div></section><details><summary>Sources & context</summary><p class="hint">Reviewed 22 Oct 2026. Your selected doses and schedules are tracked preferences, not personalized prescriptions. Research is mainly in adults; adolescent use needs clinician review. The checklist records intake, not tolerance or neurotransmitter levels. Choose third-party-tested products and review overlapping ingredients.</p>${x.sources.map(([name,url])=>`<p><a href="${url}" target="_blank" rel="noopener noreferrer">${name}</a></p>`).join('')}<p class="hint">References require internet; all notes work offline.</p></details></div>`;
     }
     if(kind==='log')content=head(state.groups.find(g=>g[0]===e.group)[1],e.name)+`<div class="dialog-body">${activeIds(state).length?`<nav class="superset-tabs" aria-label="Active superset">${activeIds(state).map((pid,i)=>`<button data-action="open" data-id="${pid}" class="${pid===eid?'selected':''}"><span>${String.fromCharCode(65+i)}</span>${html(exerciseById(state,pid).name)}<small data-countdown="${pid}"></small></button>`).join('')}</nav>`:''}${logger(e)}</div>`;
     if(kind==='alternate')content=head('INDEPENDENT HISTORY','Add custom alternate',true)+`<form id="alternate-form" class="dialog-body" data-parent="${eid}"><p class="hint">Under ${html(e.name)}. This variation keeps its own weights, reps and seat memory. It shares this movement slot’s cooldown and points.</p><label>Name<input name="name" type="text" maxlength="100" required placeholder="e.g. Lying Leg Curl" autocomplete="off"></label><div class="form-grid"><label>Sets<input type="number" name="sets" value="${e.sets}" min="1" max="10" required></label></div><label>Rep range<input type="text" name="reps" value="${html(e.reps)}" maxlength="30" required></label><label>Target RIR<input name="rir" maxlength="5" value="${html(e.rir||'')}" placeholder="e.g. 1–2"></label><p class="hint">Rest is inherited from the parent. Completing any variation satisfies the same movement slot.</p><button class="primary full" type="submit">Create alternate</button><p id="form-error" class="error" tabindex="-1" role="alert"></p></form>`;
@@ -1535,7 +1685,7 @@ function boot() {
       if(mutate(s=>a==='archive-exercise'?archiveExercise(s,eid):archiveGroup(s,eid),{render:false,message:'Removed from active lists. History kept.',canUndo:true})){closeModal();renderAll();}return;
     }
     if(a==='undo'){const fn=undo;dismissUndo();fn?.();return;}
-    if(a==='close'){closeModal();return;}
+    if(a==='close'){if(ui.modal?.kind==='supplement-info')showModal('supplements');else closeModal();return;}
     if(a==='back'){openExercise(ui.modal.id);return;}
     if(a==='page'){ui.page=b.dataset.page;ui.exercise=null;ui.group=null;ui.folder=null;ui.returnY=null;renderMain();return;}
     if(a==='filter'){ui.filter=b.dataset.filter;ui.floating=false;ui.group=null;ui.folder=null;ui.exercise=null;ui.returnY=null;renderMain();return;}
@@ -1657,6 +1807,7 @@ function boot() {
   document.addEventListener('pointerdown',event=>{const row=event.target.closest('[data-row]');if(row&&!event.target.closest('input,textarea,button,label,.drop-rounds')&&!row.classList.contains('logged'))swipe={x:event.clientX,y:event.clientY,eid:row.dataset.id,index:Number(row.dataset.row)};else swipe=null;});
   document.addEventListener('pointerup',event=>{if(swipe&&event.clientX-swipe.x>65&&Math.abs(event.clientY-swipe.y)<40){const {eid,index}=swipe;let copied=false;if(mutate(s=>{copied=copySetAbove(s,eid,index,today);},{message:'',render:false})&&copied){renderAll();buzz();toast('Copied set above.');}}swipe=null;});
   document.addEventListener('pointercancel',()=>{swipe=null;});
+  $('#dialog').addEventListener('cancel',event=>{if(ui.modal?.kind==='supplement-info'){event.preventDefault();showModal('supplements');}});
   $('#dialog').addEventListener('close',()=>{if(!$('#dialog').open){ui.modal=null;renderTop();renderMain();attachFloating();}});
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){tick();acquireWake();}else releaseWake();});
   window.addEventListener('pageshow',()=>{tick();acquireWake();});
