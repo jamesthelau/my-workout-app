@@ -1,1 +1,1 @@
-{"name":"flex-log-v2","version":"6.4.0","type":"module","private":true,"scripts":{"test":"node --test tests/*.test.js"}}
+{"name":"flex-log-v2","version":"6.5.1","type":"module","private":true,"scripts":{"test":"node --test tests/*.test.js"}}
