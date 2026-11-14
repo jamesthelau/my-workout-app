@@ -7,9 +7,9 @@ function pulse(){
     const token=`${id}:${timer.end}`;
     if(timer.end>now||sent.has(token))continue;
     sent.add(token);
-    if(options.notifications&&navigator.serviceWorker?.getRegistration){
+    if(now-timer.end<=15000&&options.notifications&&navigator.serviceWorker?.getRegistration){
       navigator.serviceWorker.getRegistration(options.scope).then(reg=>{
-        if(timers[id]?.end===timer.end)reg?.active?.postMessage({type:'rest-due',id,end:timer.end,name:timer.name,sound:options.sound,haptics:options.haptics});
+        if(options.notifications&&Date.now()-timer.end<=15000&&timers[id]?.end===timer.end)reg?.active?.postMessage({type:'rest-due',id,end:timer.end,name:timer.name,sound:options.sound,haptics:options.haptics});
       }).catch(()=>{});
     }
   }

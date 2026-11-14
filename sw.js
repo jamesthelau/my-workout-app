@@ -1,6 +1,6 @@
 // Increment the version after changing any offline app file.
 const PREFIX = `flex-log-v2:${self.registration.scope}:`;
-const CACHE = `${PREFIX}6.5.1`;
+const CACHE = `${PREFIX}6.9.0`;
 const FILES = ['./','index.html','styles.css','app.js','timer-worker.js','manifest.json','icons/icon-192.png','icons/icon-512.png','icons/maskable-512.png'];
 const urls = FILES.map(file=>new URL(file,self.registration.scope).href);
 self.addEventListener('install',event=>{
@@ -22,22 +22,39 @@ self.addEventListener('fetch',event=>{
   }));
 });
 
-// Serialize expiry messages from the page and worker to prevent duplicate alerts.
-const announced=new Set();
-let alerts=Promise.resolve();
+// Serialize alerts and dismissals so an in-flight alert cannot outlive its clear.
+const announced=new Set(),cleared=new Map();
+let clearedAll=0,alerts=Promise.resolve();
 self.addEventListener('message',event=>{
-  const m=event.data;
-  if(m?.type!=='rest-due'||typeof m.id!=='string'||!Number.isFinite(m.end)||m.end>Date.now())return;
-  const source=event.source?.url;
+  const m=event.data,source=event.source?.url;
   if(source&&!source.startsWith(self.registration.scope))return;
-  const tag=`rest:${m.id}:${m.end}`;
+  if(m?.type==='rest-clear'&&Number.isFinite(m.before)){
+    const before=Math.min(m.before,Date.now());
+    if(Array.isArray(m.ids))m.ids.filter(id=>typeof id==='string').forEach(id=>cleared.set(id,Math.max(cleared.get(id)||0,before)));
+    else clearedAll=Math.max(clearedAll,before);
+    alerts=alerts.catch(()=>{}).then(async()=>{
+      for(const n of await self.registration.getNotifications()){
+        if(!n.tag?.startsWith('rest:'))continue;
+        const id=n.data?.exerciseId||n.tag.split(':')[1];
+        const end=n.data?.end||Number(n.tag.split(':')[2])||0;
+        if((!Array.isArray(m.ids)||m.ids.includes(id))&&end<=before)n.close();
+      }
+    });
+    event.waitUntil(alerts.catch(()=>{}));return;
+  }
+  if(m?.type!=='rest-due'||typeof m.id!=='string'||!Number.isFinite(m.end)||m.end>Date.now())return;
+  const token=`${m.id}:${m.end}`,tag=`rest:${m.id}`;
   alerts=alerts.catch(()=>{}).then(async()=>{
-    if(announced.has(tag))return;
-    if((await self.registration.getNotifications({tag})).length){announced.add(tag);return;}
-    const options={body:`${String(m.name||'Exercise').slice(0,100)} · Ready for your next set`,tag,icon:'./icons/icon-192.png',data:{url:self.registration.scope},silent:m.sound===false};
+    if(Date.now()-m.end>15000||m.end<=Math.max(clearedAll,cleared.get(m.id)||0)||announced.has(token))return;
+    const windows=await self.clients?.matchAll({type:'window',includeUncontrolled:true})||[];
+    if(windows.some(c=>c.url.startsWith(self.registration.scope)&&c.visibilityState==='visible'))return;
+    const existing=await self.registration.getNotifications({tag});
+    if(existing.some(n=>n.data?.end>=m.end)){announced.add(token);return;}
+    const options={body:`${String(m.name||'Exercise').slice(0,100)} · Ready for your next set`,tag,icon:'./icons/icon-192.png',data:{url:self.registration.scope,exerciseId:m.id,end:m.end},silent:m.sound===false};
     if(m.sound!==false&&m.haptics!==false)options.vibrate=[200,100,200];
+    if(Date.now()-m.end>15000||m.end<=Math.max(clearedAll,cleared.get(m.id)||0))return;
     await self.registration.showNotification('Rest complete',options);
-    announced.add(tag);
+    announced.add(token);
   });
   event.waitUntil(alerts.catch(()=>{}));
 });

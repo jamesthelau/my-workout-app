@@ -1196,6 +1196,20 @@ export function copySetAbove(s,eid,index,day=localDay()) {
   if(!above||!above.weight.trim()||!above.reps.trim())return false;
   s.drafts[key]={...draft,weight:above.weight,reps:above.reps,partial:false};return true;
 }
+// Swipe copies only the load and reps; the destination owns its drop rounds.
+export function completeFromPrevious(s,eid,index,now=new Date(),recordId=id()) {
+  const day=localDay(now);
+  if(dailyRecords(s,eid,day).some(r=>r.index===index))throw Error('This set is already complete.');
+  const record=index===0
+    ? s.history.filter(r=>r.exerciseId===eid&&r.day<day).sort((a,b)=>a.at.localeCompare(b.at)||a.index-b.index).at(-1)
+    : dailyRecords(s,eid,day).find(r=>r.index===index-1);
+  const source=record?{weight:weightText(record,s.settings.unit),reps:String(record.reps)}
+    : index>0?s.drafts[draftKey(day,eid,index-1)]:null;
+  if(!source||!String(source.weight??'').trim()||!String(source.reps??'').trim())
+    throw Error(index===0?'No earlier session yet. Enter your first set manually.':'Fill or complete the set above first.');
+  return completeWithHistory(s,eid,index,{weight:source.weight,reps:source.reps,partial:false,
+    drops:s.drafts[draftKey(day,eid,index)]?.drops||[]},now,recordId);
+}
 export function editDrop(s,eid,index,action,round=0,field='',value='',day=localDay()) {
   if(dailyRecords(s,eid,day).some(r=>r.index===index))throw Error('Uncheck the set to edit its drop rounds.');
   const draft=s.drafts[draftKey(day,eid,index)] ||= {weight:'',reps:'',partial:false};
@@ -1613,6 +1627,47 @@ function boot() {
     if(!ui.modal)return;
     const {kind,id:eid}=ui.modal,original=eid?exerciseById(state,eid):null,root=original?exerciseById(state,slotId(state,eid)):null,e=original?{...original,tier:root.tier,restCycle:root.restCycle,group:root.group}:null;
     let content='';
+    if(kind==='training-guide')content=head('TRAIN WITH INTENT','Training guide')+`<div class="dialog-body training-guide">
+<div class="guide-lead"><span class="eyebrow">THE BASICS THAT MATTER</span><p><strong>Quality sets. Repeatable technique. Gradual progress.</strong><br>Train hard enough to improve, then recover well enough to do it again.</p></div>
+<details class="guide-section" open><summary><span>01</span> Volume & frequency</summary><div>
+<p><strong>12–15 challenging sets per muscle per week</strong> can be a useful starting target if you already tolerate that workload. Start lower if new or returning; add gradually only when needed.</p>
+<p>Spread the work over roughly <strong>two sessions</strong> to keep set quality high. With weekly volume matched, frequency itself has less influence on growth. An MPS window is not a precise workout scheduling clock.</p>
+<p>Warm-ups are not working sets. Presses and rows also train smaller assisting muscles; account for that overlap before adding isolation work.</p>
+<p class="guide-callout">There is no universal “junk volume” threshold at 20 sets. Extra sets have diminishing returns; declining performance, joint discomfort and poor recovery are reasons to reassess.</p>
+</div></details>
+<details class="guide-section"><summary><span>02</span> Reps & effort</summary><div>
+<p><strong>8–12 reps is convenient, not uniquely optimal.</strong> A broad range of loads can build muscle with sufficient effort. Use the exercise’s programmed range; heavier work favors strength, while lighter sets usually need to approach failure more closely.</p>
+<p><strong>1–2 RIR is a practical default for many working sets.</strong> RIR means additional clean reps you believe you could perform. 0 RIR means no further clean rep is available—not that you must attempt and fail an unsafe rep.</p>
+<p>Failure is optional. There is no established “95–98% of growth” guarantee or mandatory percentage of sets to stop short.</p>
+<p>To calibrate RIR, occasionally approach technical failure on a stable, easy-to-exit machine or isolation exercise. Stop when technique breaks down; use appropriate safeties and supervision.</p>
+</div></details>
+<details class="guide-section"><summary><span>03</span> Technique & exercise choice</summary><div>
+<p>Use a <strong>controlled, comfortable range of motion</strong> you can reproduce. Loading a muscle at longer lengths can help growth in some exercises, but benefits vary. Do not force an extreme stretch or painful joint position.</p>
+<p>Choose movements you can progress and perform consistently. Machines, cables and free weights can all work; stability and comfort matter more than novelty.</p>
+<p><strong>Soreness and the pump are not growth scores.</strong> Some soreness can accompany productive training; severe soreness that disrupts your next session is a reason to reduce the dose. Sharp or persistent pain calls for stopping and assessment.</p>
+</div></details>
+<details class="guide-section"><summary><span>04</span> Build the session</summary><div>
+<ol><li><strong>Priority / demanding lifts first.</strong> Warm up progressively. For squats, RDLs and other demanding compounds, leave about 1–2 clean reps and avoid grinding to failure. Rest 2–3 minutes or longer; hard lower-body sets may need 3–5.</li>
+<li><strong>Supported work and isolations next.</strong> Keep technique stable; around 1–2 RIR is a useful default. Rest roughly 1–2 minutes, longer if needed to preserve performance.</li>
+<li><strong>Optional finisher.</strong> Use a stable machine or cable exercise for a near-failure final set or dropset. Stop before technique fails.</li></ol>
+<p>These are practical priorities, not a compulsory three-phase sequence. Train a priority muscle earlier when appropriate. Noncompeting supersets are fine if each exercise still gets enough rest.</p>
+</div></details>
+<details class="guide-section"><summary><span>05</span> Dropsets without excess</summary><div>
+<p>After a hard set, reduce the load and continue with clean reps and little rest. A simple starting option is <strong>one drop on the final set</strong> of a stable exercise.</p>
+<p>Dropsets can save time and produce similar growth to traditional sets; they are not clearly superior. They increase effort and fatigue, so use them sparingly rather than adding them to every exercise.</p>
+<p>A pump is not proof of a special “sarcoplasmic” growth advantage. You still need coordination and safe technique at the end of a workout.</p>
+</div></details>
+<details class="guide-section"><summary><span>06</span> Progress & recovery</summary><div>
+<p><strong>Earn the next load.</strong> When all planned sets reach the top of the rep range at the intended RIR and consistent technique, add the smallest useful weight increment and build reps again.</p>
+<p>Compare the same variation, setup, range and units. More weight with shorter reps is not necessarily progress.</p>
+<p>If performance repeatedly drops, review sleep, food, stress, rest intervals and workload before adding sets. Reduce workload temporarily when fatigue accumulates.</p>
+<p class="guide-callout"><strong>In this app:</strong> fatigue points are planning scores, not muscle-set counts. Due / Cold / Recovering are scheduling cues, not biological measurements. Drops add logged volume but no extra fatigue points. This guide does not overwrite your exercise-specific RIR or other prescriptions.</p>
+</div></details>
+<details class="guide-section guide-sources"><summary><span>↗</span> Sources & context</summary><div>
+<p>General guidance, mainly from healthy-adult research; individual responses differ. Reviewed October 2026. Notes work offline; sources require internet.</p>
+<ul><li><a href="https://pubmed.ncbi.nlm.nih.gov/41843416/" target="_blank" rel="noopener noreferrer">ACSM resistance training position stand (2026)</a></li><li><a href="https://doi.org/10.47206/ijsc.v1i1.81" target="_blank" rel="noopener noreferrer">IUSCA hypertrophy position stand (2021)</a></li><li><a href="https://pubmed.ncbi.nlm.nih.gov/38393985/" target="_blank" rel="noopener noreferrer">1–2 RIR versus failure: training trial (2024)</a></li><li><a href="https://pubmed.ncbi.nlm.nih.gov/41920484/" target="_blank" rel="noopener noreferrer">Dropset evidence review (2026)</a></li></ul>
+</div></details></div>
+`;
     if(kind==='supplements')content=head('DAILY LOG','Supplements')+`<div class="dialog-body supplement-list"><p class="hint">${supplementDay()} · Resets at 4 a.m. local time. Tap a checkbox to log today; tap a name for history and protocol. Uncheck to undo today’s entry.</p>${[true,false].map(daily=>`<section><h3 class="eyebrow">${daily?'DAILIES':'CYCLED & TACTICAL'}</h3>${SUPPLEMENTS.filter(x=>x.daily===daily).map(x=>{const checked=supplementDates(state,x.id).includes(supplementDay());return `<div class="supplement-row"><button class="supplement-check" role="checkbox" aria-checked="${checked}" aria-label="${html(x.name)} taken today" data-action="supplement-check" data-id="${x.id}">${checked?'✓':'○'}</button><button class="supplement-name" data-action="supplement-info" data-id="${x.id}"><strong>${html(x.name)}</strong>${x.id==='theanine'?'<small class="supplement-optional">Daily / as needed</small>':''}${!daily?`<span class="last-taken">${lastTaken(state,x.id,supplementDay())}</span>`:''}</button></div>`;}).join('')}</section>`).join('')}<p class="hint">Personal protocols, not dosing advice. Checking an item records intake; it does not confirm safety or measure tolerance.</p></div>`;
     if(kind==='supplement-info'){
       const x=SUPPLEMENTS.find(x=>x.id===eid),dates=supplementDates(state,eid);
@@ -1625,7 +1680,7 @@ function boot() {
       content=head('LINKED, NOT DUPLICATED',folder?'Edit station':'Create a station')+`<form id="folder-form" class="dialog-body" data-folder="${folder?.id||''}"><label>Station name<input name="name" type="text" maxlength="60" required value="${html(folder?.name||'')}" placeholder="e.g. Cable Station"></label><p class="hint">Select exercises to link. Logs and seat settings update everywhere.</p><div class="folder-checklist">${state.groups.map(([gid,name])=>`<fieldset><legend>${html(name)}</legend>${state.exercises.filter(e=>e.group===gid&&!e.archived&&!e.parent).map(e=>`<label class="folder-choice"><input type="checkbox" name="exercise" value="${e.id}" ${folder?.exerciseIds.some(id=>slotId(state,id)===e.id)?'checked':''}><span>${html(e.name)}${e.parent?'<small>Custom alternate</small>':''}</span></label>`).join('')}</fieldset>`).join('')}</div><button type="submit" class="primary full">Save station</button>${folder?`<button type="button" class="danger full" data-action="delete-folder" data-id="${folder.id}">Delete folder · keep exercise history</button>`:''}<p id="form-error" class="error" tabindex="-1" role="alert"></p></form>`;
     }
     if(kind==='settings')content=head('LOCAL. PRIVATE. YOURS.','Misc')+`<nav class="settings-tabs"><button data-action="misc-tab" data-tab="data" class="${!ui.hardware?'selected':''}">Data & app</button><button data-action="misc-tab" data-tab="hardware" class="${ui.hardware?'selected':''}">Hardware Settings</button></nav>`+`<div class="dialog-body"><label class="setting-row"><span>Weight unit<small>Original history units are preserved.</small></span><select id="units"><option value="lbs" ${state.settings.unit==='lbs'?'selected':''}>lbs</option><option value="kg" ${state.settings.unit==='kg'?'selected':''}>kg</option></select></label><div class="settings-actions"><button data-action="export">↓ Export / Backup Data</button><button data-action="import">↑ Restore V2 Backup</button>${unreadable!==null?'<button data-action="raw-export">Download unreadable original</button>':''}<button data-action="install">↗ Install app</button><button class="danger" data-action="reset-fatigue">Reset Daily Fatigue</button><button class="danger" data-action="reset-cooldowns">Reset All Cooldowns</button></div><input id="backup-file" type="file" accept=".json,application/json" hidden><p class="hint">Reset Daily Fatigue clears today’s score and counted exercises, keeping set checkmarks and cooldowns. Newly completed exercises add points again. Resetting cooldowns marks every folder Ready and clears its last-hit indicator for this block. It preserves weights, reps, dates, partial flags, seat positions and today’s completed sets / points. Undo is available for 3 seconds.</p><p class="hint">${state.history.length} saved sets · ${state.exercises.length} exercises<br>${html(offline)}</p><p class="hint">Rest days count local calendar midnights, not 24-hour periods. Paired exercises alternate with three local midnights of recovery after a complementary hit, and reset together after six inactive calendar days. Standalone exercises retain their own cycle. Folders stay muted when all choices are cold or recovering. Logging is always available. These are planning labels, not a physiological recovery measurement. Tier points are your planning score.</p><p class="hint">Export before clearing site data, changing browsers or moving devices. Phone settings can block wake lock, sound or vibration. Background / locked-screen alerts are not guaranteed.</p><p id="form-error" class="error" tabindex="-1" role="alert"></p></div>`;
-    if(kind==='settings'&&ui.hardware)content=head('ANDROID CHROME · GALAXY S10','Misc')+`<nav class="settings-tabs"><button data-action="misc-tab" data-tab="data">Data & app</button><button data-action="misc-tab" data-tab="hardware" class="selected">Hardware Settings</button></nav><div class="dialog-body"><label class="setting-row"><span>Audio tone</span><input type="checkbox" id="sound" ${state.settings.sound?'checked':''}></label><label>Volume <output id="volume-value">${Math.round(state.settings.volume*100)}%</output><input type="range" id="volume" min="0" max="1" step="0.05" value="${state.settings.volume}"></label><label class="setting-row"><span>Haptic vibration</span><input type="checkbox" id="haptics" ${state.settings.haptics?'checked':''}></label><label>Haptic intensity <output id="hapticIntensity-value">${Math.round(state.settings.hapticIntensity*100)}%</output><input type="range" id="hapticIntensity" min="0" max="1" step="0.1" value="${state.settings.hapticIntensity}"></label><p class="hint">Adjusts pulse length, not motor amplitude. Android controls physical vibration strength.</p><button class="primary full" data-action="test-hardware">Test tone & vibration</button><button data-action="enable-notifications">Rest notifications: ${'Notification' in window?Notification.permission:'unavailable'}</button><p class="hint">Enable notifications in Android site settings if blocked. Android controls notification sound and vibration; volume here controls only the in-app tone. Background suspension can delay alerts.</p><p class="hint" id="hardware-status">Audio: ${audio?.state||'waiting for a tap'} · Vibration API: ${navigator.vibrate?'available':'unavailable'}</p><p class="hint">Keep media volume on. Silent mode, Do Not Disturb, background suspension and power saving may suppress alerts. Timers remain accurate when you return. Screen wake lock is requested during rest.</p><p id="form-error" class="error" role="alert"></p></div>`;
+    if(kind==='settings'&&ui.hardware)content=head('ANDROID CHROME · GALAXY S10','Misc')+`<nav class="settings-tabs"><button data-action="misc-tab" data-tab="data">Data & app</button><button data-action="misc-tab" data-tab="hardware" class="selected">Hardware Settings</button></nav><div class="dialog-body"><label class="setting-row"><span>Audio tone</span><input type="checkbox" id="sound" ${state.settings.sound?'checked':''}></label><label>Volume <output id="volume-value">${Math.round(state.settings.volume*100)}%</output><input type="range" id="volume" min="0" max="1" step="0.05" value="${state.settings.volume}"></label><label class="setting-row"><span>Haptic vibration</span><input type="checkbox" id="haptics" ${state.settings.haptics?'checked':''}></label><label>Haptic intensity <output id="hapticIntensity-value">${Math.round(state.settings.hapticIntensity*100)}%</output><input type="range" id="hapticIntensity" min="0" max="1" step="0.1" value="${state.settings.hapticIntensity}"></label><p class="hint">Adjusts pulse length, not motor amplitude. Android controls physical vibration strength.</p><button class="primary full" data-action="test-hardware">Test tone & vibration</button><button data-action="enable-notifications">Rest notifications: ${'Notification' in window?Notification.permission:'unavailable'}</button><p class="hint">Enable notifications in Android site settings if blocked. Android controls notification sound and vibration; volume here controls only the in-app tone. Background suspension can delay alerts. Alerts more than 15 seconds late are skipped; returning to the app updates expired timers silently.</p><p class="hint" id="hardware-status">Audio: ${audio?.state||'waiting for a tap'} · Vibration API: ${navigator.vibrate?'available':'unavailable'}</p><p class="hint">Keep media volume on. Silent mode, Do Not Disturb, background suspension and power saving may suppress alerts. Timers remain accurate when you return. Screen wake lock is requested during rest while the app is visible. Keep this screen open for the most dependable PWA timer. Locking the phone or closing the tab can stop alerts; this app cannot schedule a native Android alarm.</p><p id="form-error" class="error" role="alert"></p></div>`;
     if(kind==='workout')content=head('NO RUSH. JUST GOOD SETS.','Workout clock')+`<div class="dialog-body"><div class="big-clock" id="big-clock">${duration(Math.floor(workoutMillis(state)/1000))}</div><p class="hint">Starts with your first logged set, or start it manually. Keeps elapsed time through navigation and reloads.</p><div class="button-row"><button class="primary" data-action="clock-toggle">${state.clock.ended?'Start new workout':state.clock.startedAt!==null?'Pause':state.clock.elapsed?'Resume':'Start'}</button><button data-action="end-workout" class="danger" ${state.clock.ended?'disabled':''}>End workout</button></div><p class="hint">End workout saves the final duration, stops all rest timers and clears the active tray. Your logs, cooldowns and fatigue stay intact. Reset fatigue separately in Settings.</p></div>`;
     if(kind==='rest')content=head('EXERCISE TIMER',e.name,true)+`<form id="rest-form" class="dialog-body" data-id="${eid}"><label>Rest in seconds<input type="number" min="15" max="900" step="1" name="seconds" value="${state.rest[eid]||(e.rest[0]+e.rest[1])/2}" required></label><p class="hint">Prescribed range: ${duration(e.rest[0])}–${duration(e.rest[1])}. Applies to this exercise’s next checked set.</p><button class="primary full">Save rest duration</button><p id="form-error" class="error" tabindex="-1" role="alert"></p></form>`;
     if(kind==='edit-exercise')content=head('YOUR EXERCISE','Edit exercise')+`<form id="exercise-edit-form" class="dialog-body" data-id="${eid}"><label>Name<input name="name" maxlength="100" required value="${html(e.name)}"></label><div class="form-grid"><label>Number of sets<input name="sets" type="number" inputmode="numeric" min="1" max="10" required value="${e.sets}"></label><label>Target reps<input name="reps" maxlength="7" required value="${html(e.reps)}" placeholder="8–12"></label></div><label>Slot tier / fatigue points<select name="tier">${[1,2,3].map(t=>`<option value="${t}" ${e.tier===t?'selected':''}>Tier ${t} · ${4-t} pts</option>`).join('')}</select></label><div class="form-grid"><label>Rest min (seconds)<input name="restMin" type="number" inputmode="numeric" min="15" max="900" required value="${e.rest[0]}"></label><label>Rest max (seconds)<input name="restMax" type="number" inputmode="numeric" min="15" max="900" required value="${e.rest[1]}"></label></div><p class="hint">Use the same value for a fixed rest. 90 seconds = 1½ min; 180 = 3 min. Rest changes apply to the next timer.</p><label>Target RIR<input name="rir" maxlength="5" value="${html(e.rir||'')}" placeholder="e.g. 1–2"></label><label>Slot rest cycle<select name="restCycle"><option value="3" ${e.restCycle===3?'selected':''}>3 days · twice weekly</option><option value="7" ${e.restCycle===7?'selected':''}>7 days · once weekly</option></select></label><label>Category<select name="group">${state.groups.filter(g=>!state.hiddenGroups.includes(g[0])).map(g=>`<option value="${g[0]}" ${e.group===g[0]?'selected':''}>${html(g[1])}</option>`).join('')}</select></label><label>Seat / setup notes<input name="seat" maxlength="200" value="${html(e.seat)}"></label><button class="primary full">Save changes</button><button type="button" class="danger full" data-action="archive-exercise" data-id="${eid}">Delete exercise</button><p class="hint">Deleting removes this exercise and its alternates from active lists. History remains in your backup. Undo is available for 3 seconds.</p><p id="form-error" class="error" role="alert"></p></form>`;
@@ -1660,6 +1715,12 @@ function boot() {
     if(notificationAsked)return;notificationAsked=true;
     try{Notification.requestPermission().then(permission=>{syncTimers();toast(permission==='granted'?'Rest notifications enabled. Android may still delay background alerts.':'Notifications are off. In-app alerts still work.');if(ui.modal?.kind==='settings')renderModal();}).catch(()=>{});}catch{}
   }
+  function clearRestNotifications(eid){
+    if(!navigator.serviceWorker?.getRegistration)return;
+    const ids=eid?state.exercises.filter(e=>slotId(state,e.id)===slotId(state,eid)).map(e=>e.id):undefined;
+    const message={type:'rest-clear',before:Date.now(),...(ids?{ids}:{})};
+    navigator.serviceWorker.getRegistration().then(reg=>reg?.active?.postMessage(message)).catch(()=>{});
+  }
   function notifyRest(eid,timer){
     if(!('Notification' in window)||Notification.permission!=='granted'||!navigator.serviceWorker?.getRegistration)return;
     navigator.serviceWorker.getRegistration().then(reg=>reg?.active?.postMessage({type:'rest-due',id:eid,end:timer.end,name:exerciseById(state,eid)?.name||'Exercise',sound:state.settings.sound,haptics:state.settings.haptics})).catch(()=>{});
@@ -1667,7 +1728,7 @@ function boot() {
   function syncTimers(){
     if(Object.keys(state.timers).length)acquireWake();else releaseWake();
     if(!timerWorker)return;
-    const payload={type:'sync',timers:Object.fromEntries(Object.entries(state.timers).map(([id,t])=>[id,{end:t.end,name:exerciseById(state,id)?.name||'Exercise'}])),options:{scope:location.href,notifications:'Notification' in window&&Notification.permission==='granted',sound:state.settings.sound,haptics:state.settings.haptics}};
+    const payload={type:'sync',timers:Object.fromEntries(Object.entries(state.timers).map(([id,t])=>[id,{end:t.end,name:exerciseById(state,id)?.name||'Exercise'}])),options:{scope:location.href,notifications:document.visibilityState!=='visible'&&'Notification' in window&&Notification.permission==='granted',sound:state.settings.sound,haptics:state.settings.haptics}};
     const signature=JSON.stringify(payload);if(signature===workerSignature)return;
     workerSignature=signature;timerWorker.postMessage(payload);
   }
@@ -1678,11 +1739,21 @@ function boot() {
     const elapsed=duration(Math.floor(workoutMillis(state)/1000));if($('#stopwatch'))$('#stopwatch').textContent=elapsed;if($('#big-clock'))$('#big-clock').textContent=elapsed;
     if($('#wake-label'))$('#wake-label').textContent=wake?'screen awake':'wake lock off';
   }
-  function tick(){
+  function tick({catchUp=false}={}){
     const supplementDate=supplementDay();if(supplementDate!==supplementToday){supplementToday=supplementDate;if(ui.modal?.kind==='supplements')renderModal();}
     const day=localDay();if(day!==today){today=day;dismissUndo();renderAll();toast('A new calendar day. Today’s sets and fatigue start fresh.');}
     const ended=Object.entries(state.timers).filter(([,t])=>t.end<=Date.now());
-    if(ended.length){ended.forEach(([eid,timer])=>notifyRest(eid,timer));const next=copy(state);ended.forEach(([eid])=>delete next.timers[eid]);if(persist(next))state=next;else ended.forEach(([eid])=>delete state.timers[eid]);renderTop();renderModal();syncTimers();alarm();const names=ended.map(([eid])=>exerciseById(state,eid).name).join(', ');$('#announce').textContent=`Rest complete: ${names}`;if(!undo)toast(`Ready: ${names}`);}
+    if(ended.length){
+      const fresh=catchUp?[]:ended.filter(([,t])=>Date.now()-t.end<=15000);
+      if(document.visibilityState!=='visible')fresh.forEach(([eid,timer])=>notifyRest(eid,timer));
+      const next=copy(state);ended.forEach(([eid])=>delete next.timers[eid]);
+      if(persist(next))state=next;else ended.forEach(([eid])=>delete state.timers[eid]);
+      renderTop();renderModal();syncTimers();
+      if(fresh.length&&document.visibilityState==='visible')alarm();
+      const names=ended.map(([eid])=>exerciseById(state,eid)?.name||'Exercise').join(', ');
+      $('#announce').textContent=`Rest complete: ${names}`;
+      if(!undo)toast(`${fresh.length?'Ready':'Rest finished while away'}: ${names}`);
+    }
     tickLabels();
   }
   function renderAll(){renderTop();renderMain();renderModal();syncTimers();refreshWeightFields();}
@@ -1704,6 +1775,7 @@ function boot() {
     const point=event.target.closest('[data-point]');if(point){ui.graphPoint=Number(point.dataset.point);renderModal();return;}
     const b=event.target.closest('[data-action]');if(!b)return;const a=b.dataset.action,eid=b.dataset.id,index=Number(b.dataset.index);
     if(b.closest('summary'))event.preventDefault();
+    if(a==='training-guide'){showModal('training-guide');return;}
     if(a==='supplements'){showModal('supplements');return;}
     if(a==='supplement-info'){showModal('supplement-info',eid);return;}
     if(a==='supplement-check'){const day=supplementDay();mutate(s=>setSupplement(s,eid,day,!supplementDates(s,eid).includes(day)));return;}
@@ -1734,7 +1806,7 @@ function boot() {
       unlockAudio();const row=currentRow(eid,index),record=dailyRecords(state,eid,today).find(r=>r.index===index);
       const values={weight:row.querySelector('[data-field=weight]').value,reps:row.querySelector('[data-field=reps]').value,partial:state.drafts[draftKey(today,eid,index)]?.partial||false,drops:state.drafts[draftKey(today,eid,index)]?.drops||[]};
       const completedBefore=completion(state,eid,today).complete;
-      if(mutate(s=>record?unlogSet(s,eid,index,today):completeWithHistory(s,eid,index,values),{render:false,message:record?'Set unchecked.':'Set saved.',canUndo:true})){if(!record&&state.timers[eid])requestRestNotifications();buzz();if(!record){if(!completedBefore&&completion(state,eid,today).complete&&!state.fatigueResets[today]?.includes(eid))$('#announce').textContent=`${exerciseById(state,eid).name} complete. ${points(exerciseById(state,eid))} points added.`;finishSetView();}else renderAll();}return;
+      if(mutate(s=>record?unlogSet(s,eid,index,today):completeWithHistory(s,eid,index,values),{render:false,message:record?'Set unchecked.':'Set saved.',canUndo:true})){if(!record)clearRestNotifications(eid);if(!record&&state.timers[eid])requestRestNotifications();buzz();if(!record){if(!completedBefore&&completion(state,eid,today).complete&&!state.fatigueResets[today]?.includes(eid))$('#announce').textContent=`${exerciseById(state,eid).name} complete. ${points(exerciseById(state,eid))} points added.`;finishSetView();}else renderAll();}return;
     }
     if(a==='copy'){if(mutate(s=>copyPrevious(s,eid,index,today))){buzz();currentRow(eid,index)?.querySelector('[data-field=weight]')?.focus({preventScroll:true});}return;}
     if(a==='target-plus'||a==='target-minus'){mutate(s=>changeTarget(s,eid,targetSets(s,eid,today)+(a==='target-plus'?1:-1),today));return;}
@@ -1752,7 +1824,7 @@ function boot() {
     if(a==='delete-folder'){if(mutate(s=>{s.folders=s.folders.filter(f=>f.id!==eid);},{render:false,message:'Folder removed. History kept.',canUndo:true})){closeModal();renderAll();}return;}
     if(a==='reset-cooldowns'){mutate(resetCooldowns,{message:'Cooldowns reset. History and points kept.',canUndo:true});return;}
     if(a==='clock-toggle'){unlockAudio();mutate(s=>{if(s.clock.startedAt!==null)pauseClock(s);else startWorkout(s);});return;}
-    if(a==='end-workout'){mutate(s=>endWorkout(s),{message:'Workout ended. Logs and final time saved.',canUndo:true});return;}
+    if(a==='end-workout'){if(mutate(s=>endWorkout(s),{message:'Workout ended. Logs and final time saved.',canUndo:true}))clearRestNotifications();return;}
     if(a==='reset-fatigue'){mutate(s=>resetDailyFatigue(s,today),{message:'Daily fatigue reset. Logs and cooldowns kept.',canUndo:true});return;}
         if(a==='timer-stop'){mutate(s=>{delete s.timers[eid];});return;}
     if(a==='export'){download(JSON.stringify(state,null,2),`flex-log-v2-${today}.json`);return;}
@@ -1835,13 +1907,30 @@ function boot() {
   document.addEventListener('contextmenu',event=>{const edit=editTarget(event.target);if(edit){event.preventDefault();cancelHold();if(Date.now()>=suppressClickUntil)edit();}},true);
   document.addEventListener('keydown',event=>{if(event.key==='F2'||event.shiftKey&&event.key==='F10'){const edit=editTarget(event.target);if(edit){event.preventDefault();edit();}}});
   let swipe=null;
-  document.addEventListener('pointerdown',event=>{const row=event.target.closest('[data-row]');if(row&&!event.target.closest('input,textarea,button,label,.drop-rounds')&&!row.classList.contains('logged'))swipe={x:event.clientX,y:event.clientY,eid:row.dataset.id,index:Number(row.dataset.row)};else swipe=null;});
-  document.addEventListener('pointerup',event=>{if(swipe&&event.clientX-swipe.x>65&&Math.abs(event.clientY-swipe.y)<40){const {eid,index}=swipe;let copied=false;if(mutate(s=>{copied=copySetAbove(s,eid,index,today);},{message:'',render:false})&&copied){renderAll();buzz();toast('Copied set above.');}}swipe=null;});
+  document.addEventListener('pointerdown',event=>{
+    const row=event.target.closest('[data-row]');
+    if((event.button===undefined||event.button===0)&&row&&!event.target.closest('input,textarea,button,label,.drop-rounds')&&!row.classList.contains('logged'))
+      swipe={pointerId:event.pointerId,x:event.clientX,y:event.clientY,eid:row.dataset.id,index:Number(row.dataset.row),day:localDay()};
+    else swipe=null;
+  });
+  document.addEventListener('pointermove',event=>{if(swipe&&event.pointerId===swipe.pointerId&&Math.abs(event.clientY-swipe.y)>=40)swipe=null;});
+  document.addEventListener('pointerup',event=>{
+    const gesture=swipe;swipe=null;
+    if(!gesture||event.pointerId!==gesture.pointerId||event.clientX-gesture.x<=65||Math.abs(event.clientY-gesture.y)>=40)return;
+    suppressClickUntil=Date.now()+400;
+    if(gesture.day!==localDay()||today!==localDay()){today=localDay();renderAll();toast('Midnight crossed. Review today’s sets before logging.');return;}
+    const {eid,index}=gesture;unlockAudio();
+    if(mutate(s=>completeFromPrevious(s,eid,index),{render:false,message:'Previous weight and reps saved. Set complete.',canUndo:true})){
+      clearRestNotifications(eid);
+      if(state.timers[eid])requestRestNotifications();
+      buzz();finishSetView();
+    }
+  });
   document.addEventListener('pointercancel',()=>{swipe=null;});
   $('#dialog').addEventListener('cancel',event=>{if(ui.modal?.kind==='supplement-info'){event.preventDefault();showModal('supplements');}});
   $('#dialog').addEventListener('close',()=>{if(!$('#dialog').open){ui.modal=null;renderTop();renderMain();attachFloating();}});
-  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){tick();acquireWake();}else releaseWake();});
-  window.addEventListener('pageshow',()=>{tick();acquireWake();});
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){clearRestNotifications();tick({catchUp:true});acquireWake();}else releaseWake();syncTimers();});
+  window.addEventListener('pageshow',()=>{clearRestNotifications();tick({catchUp:true});acquireWake();syncTimers();});
   
   window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();installPrompt=event;});
   window.addEventListener('storage',event=>{if(event.key!==key)return;try{state=event.newValue?migrateState(JSON.parse(event.newValue)):initialState();dismissUndo();renderAll();toast('Updated from another tab.');}catch{blocked=true;warn('Another tab saved unreadable data. Export your current log before reloading.');}});
@@ -1852,6 +1941,6 @@ function boot() {
     timerWorker.onmessage=event=>{if(event.data?.type==='tick')tick();};
     timerWorker.onerror=()=>{timerWorker?.terminate();timerWorker=null;workerSignature='';};
   }}catch{timerWorker=null;}
-  document.addEventListener('resume',()=>{tick();workerSignature='';syncTimers();});
-  renderAll();tick();setInterval(()=>{if(!timerWorker||!Object.keys(state.timers).length)tick();},250);
+  document.addEventListener('resume',()=>{clearRestNotifications();tick({catchUp:true});workerSignature='';syncTimers();});
+  clearRestNotifications();tick({catchUp:true});renderAll();setInterval(()=>{if(!timerWorker||!Object.keys(state.timers).length)tick();},250);
 }

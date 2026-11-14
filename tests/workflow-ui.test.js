@@ -89,7 +89,7 @@ test('UI event flow auto-fills, collapses, restores captured Y, pins and renders
  const swipeTarget={closest(selector){return selector==='[data-row]'?swipeRow:null;}};
  for(const fn of listeners.pointerdown||[])fn({target:swipeTarget,clientX:10,clientY:100});
  for(const fn of listeners.pointerup||[])fn({target:swipeTarget,clientX:110,clientY:105});
- const copied=JSON.parse(raw).drafts[`${dropRecord.day}|e1|2`];assert.equal(copied.weight,'100');assert.equal(copied.reps,'8');assert.equal(copied.drops,undefined);
+ const copied=JSON.parse(raw).history.find(r=>r.exerciseId==='e1'&&r.index===2);assert.equal(copied.weight,100);assert.equal(copied.reps,8);assert.ok(!copied.drops?.length);assert.equal(nodes.get('#dialog').open,false);
  click('settings');click('misc-tab',{tab:'hardware'});assert.match(nodes.get('#dialog-content').innerHTML,/id="volume"/);assert.match(nodes.get('#dialog-content').innerHTML,/id="hapticIntensity"/);assert.ok(!readFileSync(new URL('../index.html',import.meta.url),'utf8').includes('timer-dock'));
  click('supplements');assert.match(nodes.get('#dialog-content').innerHTML,/CYCLED &amp; TACTICAL|CYCLED & TACTICAL/);
  const historyBefore=JSON.parse(raw).history;
@@ -102,5 +102,11 @@ test('UI event flow auto-fills, collapses, restores captured Y, pins and renders
  let prevented=false;nodes.get('#dialog').events.cancel({preventDefault(){prevented=true;}});assert.equal(prevented,true);assert.match(nodes.get('#dialog-content').innerHTML,/CYCLED & TACTICAL/);
  click('close');assert.equal(nodes.get('#dialog').open,false);click('supplements');click('supplement-check',{id:'choline'});assert.equal(JSON.parse(raw).supplementLog.length,0);
  assert.deepEqual(JSON.parse(raw).history,historyBefore);
+
+ click('close');const beforeGuide=raw;
+ click('training-guide');assert.equal(nodes.get('#dialog').open,true);
+ for(const title of ['Volume & frequency','Reps & effort','Technique & exercise choice','Build the session','Dropsets without excess','Progress & recovery','Sources & context'])assert.ok(nodes.get('#dialog-content').innerHTML.includes(title));
+ assert.equal(raw,beforeGuide);click('close');assert.equal(nodes.get('#dialog').open,false);
+ assert.match(readFileSync(new URL('../index.html',import.meta.url),'utf8'),/data-action="training-guide" aria-label="Training guide"/);
 
 });

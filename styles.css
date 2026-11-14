@@ -111,3 +111,20 @@ html{overflow-anchor:none;scroll-behavior:auto}.fatigue-progress{appearance:none
 .heat-recovering .heat-label {color:#ac8952}
 .recovery-note {display:inline-block;color:#c4a16c;font-size:11px;line-height:1.5;white-space:normal}
 .pin-shell.heat-recovering {box-shadow:none;border-color:#393329}
+.guide-launch {flex-shrink:0}
+.training-guide {overflow-wrap:anywhere}
+.guide-lead {padding:16px;background:#151f10;border:1px solid #455b31;border-radius:12px;margin-bottom:16px}
+.guide-lead p {margin-top:8px;font-size:14px;line-height:1.7}
+.guide-section {border-bottom:1px solid #30352b}
+.guide-section summary {display:flex;align-items:center;gap:12px;min-height:56px;cursor:pointer;font-size:15px;font-weight:600;padding:12px 0;list-style:none}
+.guide-section summary::-webkit-details-marker {display:none}
+.guide-section summary>span {color:#a3b88c;font-size:12px;font-variant-numeric:tabular-nums}
+.guide-section summary::after {content:'+';margin-left:auto;color:#a3b88c}
+.guide-section[open] summary::after {content:'−'}
+.guide-section>div {padding:0 0 18px;font-size:14px;line-height:1.75}
+.guide-section p+p,.guide-section li+li {margin-top:12px}
+.guide-section ol,.guide-section ul {padding-left:20px;margin:0 0 12px}
+.guide-callout {padding:12px;border-left:2px solid #b99b60;background:#1c1c16;border-radius:0 8px 8px 0}
+.guide-sources a {text-decoration:underline;text-underline-offset:3px}
+
+[data-row] { touch-action: pan-y; }
